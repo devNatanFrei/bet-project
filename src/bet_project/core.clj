@@ -12,7 +12,7 @@
                                                                  :x-rapidapi-host "betano.p.rapidapi.com"}
                                                        :query-params {:sport "soccer"}}))              
 
-(def )
+
 
 (def body-tourn (:body tourn))
 (def body-parsed-tourn (json/parse-string body-tourn true))
