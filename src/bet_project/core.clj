@@ -15,10 +15,16 @@
 
 (defn fetch-events
   []
-  (let [response (client/get "https://betano.p.rapidapi.com/events"
-                             {:headers {:x-rapidapi-key "7e74fa9991msh6adec433f460cb7p1f3802jsn94929cbbe680"
-                                        :x-rapidapi-host "betano.p.rapidapi.com"}
-                              :query-params {:tournamentId "38"}})]
+  (let [response (client/get "https://betano.p.rapidapi.com/events" {:headers {:x-rapidapi-key "7e74fa9991msh6adec433f460cb7p1f3802jsn94929cbbe680"
+                                                                               :x-rapidapi-host "betano.p.rapidapi.com"}
+                                                                     :query-params {:tournamentId "38"}})]
+    (json/parse-string (:body response) true)))
+
+(defn fetch-oddtypes
+  []
+  (let [response (client/get "https://betano.p.rapidapi.com/oddstypes" {:headers {:x-rapidapi-key "7e74fa9991msh6adec433f460cb7p1f3802jsn94929cbbe680"
+                                                                                  :x-rapidapi-host "betano.p.rapidapi.com"}
+                                                                        :query-params {:sport "soccer"}})]
     (json/parse-string (:body response) true)))
 
 (defn parse-tournament
@@ -30,12 +36,28 @@
 
 (defn parse-event
   [event]
-  {:eventId        (:eventId event)
+  {:bookmakerCount (:bookmakerCount event)
    :date           (:date event)
-   :time           (:time event)
+   :eventId        (:eventId event)
+   :eventStatus    (:eventStatus event)
    :participant1   (:participant1 event)
+   :participant1Id (:participant1Id event)
    :participant2   (:participant2 event)
-   :bookmakerCount (:bookmakerCount event)})
+   :participant2Id (:participant2Id event)
+   :startTime      (:startTime event)
+   :time           (:time event)})
+
+(defn parse-oddtype
+  [odd]
+  {:handicap        (:handicap odd)
+   :marketId        (:marketId odd)
+   :marketName      (:marketName odd)
+   :marketNameShort (:marketNameShort odd)
+   :oddsType        (:oddsType odd)
+   :outcomeId       (:outcomeId odd)
+   :outcomeName     (:outcomeName odd)
+   :outcomes        (:outcomes odd)
+   :sport           (:sport odd)})
 
 (defn pegar-torneios
   [request]
@@ -49,9 +71,16 @@
     {:status 200
      :body (mapv parse-event (vals (:events events)))}))
 
+(defn pegar-oddtypes
+  [request]
+  (let [oddtypes (fetch-oddtypes)]
+    {:status 200
+     :body (mapv parse-oddtype (vals oddtypes))}))
+
 (def routes (route/expand-routes
              #{["/jogos" :get pegar-torneios :route-name :todos-os-jogos]
-               ["/eventos" :get pegar-eventos :route-name :todos-os-eventos]}))
+               ["/eventos" :get pegar-eventos :route-name :todos-os-eventos]
+               ["/oddtypes" :get pegar-oddtypes :route-name :todos-os-oddtypes]}))
 
 (def service-map {::http/routes routes
                   ::http/port   9999
