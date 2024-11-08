@@ -1,28 +1,32 @@
 (ns bet-project.core
   (:require
-   [io.pedestal.http :as http]
-   [io.pedestal.http.route :as route]
-   [clj-http.client :as client]
-   [cheshire.core :as json]))
+    [io.pedestal.http :as http]
+    [io.pedestal.http.route :as route]
+    [clj-http.client :as client]
+    [cheshire.core :as json]))
 
-(defn fetch-tournaments
+(defn fetch-soccer-tournaments
   []
-  (let [response (client/get "https://betano.p.rapidapi.com/tournaments"
-                             {:headers {"x-rapidapi-key" "7e74fa9991msh6adec433f460cb7p1f3802jsn94929cbbe680"
-                                        "x-rapidapi-host" "betano.p.rapidapi.com"}
-                              :query-params {"sport" "soccer"}})]
+  (let [response (client/get "https://betano.p.rapidapi.com/tournaments" {:headers {:x-rapidapi-key "507110868dmsh80767a1dbb87630p1ce51fjsn9eaed59d8bcf"
+                                                                                    :x-rapidapi-host "betano.p.rapidapi.com"}
+                                                                          :query-params {:sport "soccer"}})]
     (json/parse-string (:body response) true)))
+
+;(defn fetch-basket-tournaments
+;  []
+;  (let [response (client/get )]
+;    (json/parse-string (:body response) true)))
 
 (defn fetch-events
   []
-  (let [response (client/get "https://betano.p.rapidapi.com/events" {:headers {:x-rapidapi-key "7e74fa9991msh6adec433f460cb7p1f3802jsn94929cbbe680"
-                                                                               :x-rapidapi-host "betano.p.rapidapi.com"}
-                                                                     :query-params {:tournamentId "38"}})]
+  (let [response(client/get "https://betano.p.rapidapi.com/events" {:headers {:x-rapidapi-key "507110868dmsh80767a1dbb87630p1ce51fjsn9eaed59d8bcf"
+                                                                              :x-rapidapi-host "betano.p.rapidapi.com"}
+                                                                    :query-params {:tournamentId "38"}})]
     (json/parse-string (:body response) true)))
 
 (defn fetch-oddtypes
   []
-  (let [response (client/get "https://betano.p.rapidapi.com/oddstypes" {:headers {:x-rapidapi-key "7e74fa9991msh6adec433f460cb7p1f3802jsn94929cbbe680"
+  (let [response (client/get "https://betano.p.rapidapi.com/oddstypes" {:headers {:x-rapidapi-key "507110868dmsh80767a1dbb87630p1ce51fjsn9eaed59d8bcf"
                                                                                   :x-rapidapi-host "betano.p.rapidapi.com"}
                                                                         :query-params {:sport "soccer"}})]
     (json/parse-string (:body response) true)))
@@ -59,12 +63,16 @@
    :outcomes        (:outcomes odd)
    :sport           (:sport odd)})
 
-(defn pegar-torneios
+(defn pegar-torneios-futebol
   [request]
-  (let [tournaments (fetch-tournaments)]
+  (let [tournaments (fetch-soccer-tournaments)]
     {:status 200
      :body (mapv parse-tournament (vals tournaments))}))
-
+(defn pegar-torneios-basket
+  [request]
+  (let [tournaments (fetch-basket-tournaments)]
+    {:status 200
+     :body (mapv parse-tournament (vals tournaments))}))
 (defn pegar-eventos
   [request]
   (let [events (fetch-events)]
@@ -78,14 +86,15 @@
      :body (mapv parse-oddtype (vals oddtypes))}))
 
 (def routes (route/expand-routes
-             #{["/jogos" :get pegar-torneios :route-name :todos-os-jogos]
-               ["/eventos" :get pegar-eventos :route-name :todos-os-eventos]
-               ["/oddtypes" :get pegar-oddtypes :route-name :todos-os-oddtypes]}))
+              #{["/futebol" :get pegar-torneios-futebol :route-name :jogos-futebol]
+                ["/basket" :get pegar-torneios-basket :route-name :jogos-basket]
+                ["/eventos" :get pegar-eventos :route-name :todos-os-eventos]
+                ["/oddtypes" :get pegar-oddtypes :route-name :todos-os-oddtypes]}))
 
 (def service-map {::http/routes routes
                   ::http/port   9999
                   ::http/type   :jetty
                   ::http/join?  false})
 
-(defn -main [& args]
-  (http/start (http/create-server service-map)))
+  (http/start (http/create-server service-map))
+(println "Rodou pourra")
