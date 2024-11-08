@@ -12,10 +12,6 @@
                                                                           :query-params {:sport "soccer"}})]
     (json/parse-string (:body response) true)))
 
-;(defn fetch-basket-tournaments
-;  []
-;  (let [response (client/get )]
-;    (json/parse-string (:body response) true)))
 
 (defn fetch-events
   []
@@ -68,11 +64,7 @@
   (let [tournaments (fetch-soccer-tournaments)]
     {:status 200
      :body (mapv parse-tournament (vals tournaments))}))
-(defn pegar-torneios-basket
-  [request]
-  (let [tournaments (fetch-basket-tournaments)]
-    {:status 200
-     :body (mapv parse-tournament (vals tournaments))}))
+
 (defn pegar-eventos
   [request]
   (let [events (fetch-events)]
@@ -86,8 +78,7 @@
      :body (mapv parse-oddtype (vals oddtypes))}))
 
 (def routes (route/expand-routes
-              #{["/futebol" :get pegar-torneios-futebol :route-name :jogos-futebol]
-                ["/basket" :get pegar-torneios-basket :route-name :jogos-basket]
+              #{["/futebol" :get pegar-torneios-futebol :route-name :jogos-futebol] 
                 ["/eventos" :get pegar-eventos :route-name :todos-os-eventos]
                 ["/oddtypes" :get pegar-oddtypes :route-name :todos-os-oddtypes]}))
 
@@ -96,5 +87,10 @@
                   ::http/type   :jetty
                   ::http/join?  false})
 
+(defn -main
+  [& args] 
   (http/start (http/create-server service-map))
-(println "Rodou pourra")
+  (println "Rodou pourra")
+  )
+
+
