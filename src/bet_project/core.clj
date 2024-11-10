@@ -5,6 +5,26 @@
     [clj-http.client :as client]
     [cheshire.core :as json]))
 
+(def account (atom {}))
+(def bet (atom {}))
+
+(defn update-balance [amount]
+  (swap! account update :balance + amount))
+
+
+(defn deposit-value [request]
+  (-> request :json-params :value))
+
+
+
+(defn deposit [request]
+  (update-balance (deposit-value request))
+  {:status 200 
+   :body {:message (str "Depósito de " (deposit-value request) )
+          :balance @account}})
+  
+  
+
 (defn fetch-soccer-tournaments
   []
   (let [response (client/get "https://betano.p.rapidapi.com/tournaments" {:headers {:x-rapidapi-key "507110868dmsh80767a1dbb87630p1ce51fjsn9eaed59d8bcf"
