@@ -73,4 +73,4 @@
 
 (defn -main [& args]
   (http/start (http/create-server service-map))
-  (println "Servidor iniciado!"))
+  (println "roda casseta"))
