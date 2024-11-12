@@ -18,6 +18,15 @@
       )))
 
 
+(defn balance-handler
+  [request]
+  (let [amount (:amount (json/parse-string (slurp (:body request)) true))]
+    (if (number? amount)
+      (do
+        (swap! account-balance - amount)
+        {:status 200}))))
+
+
 (defn get-deposit [request]
   {:status 200
    :body (json/generate-string {:balance @account-balance})})
