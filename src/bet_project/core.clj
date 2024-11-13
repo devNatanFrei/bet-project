@@ -34,6 +34,14 @@
                      {:status 200
                       :body data}))
 
+(defn get-schedules-euro [request]
+  (let [response (client/get "https://therundown-therundown-v1.p.rapidapi.com/sports/17/schedule" {:headers {:x-rapidapi-key "3e36075547msh24537dc0606651ap103e05jsna0572db9e77c"
+                                                                                                            :x-rapidapi-host "therundown-therundown-v1.p.rapidapi.com"}
+                                                                                                  :query-params {:limit "100"}})
+        data (:body response)]
+    {:status 200
+     :body data}))
+
   (defn get-deposit [request]
   {:status 200
    :body (json/generate-string {:balance @account-balance})})
@@ -78,7 +86,8 @@
      ["/balance" :get get-deposit :route-name :get-balance]
      ["/events-nba" :get get-events-nba :route-name :get-events]
      ["/openers-nba" :get get-openers-nba :route-name :get-openers]
-     ["/schedules-nba" :get get-schedules-nba :route-name :get-schedules]
+     ["/schedules-nba" :get get-schedules-nba :route-name :get-nba-schedules]
+     ["/schedules-euro" :get get-schedules-euro :route-name :get-euro-schedules]
      ["/openers-euro" :get get-openers-euro :route-name :get-openers-euro]}))
 
 
