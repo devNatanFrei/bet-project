@@ -162,7 +162,7 @@
 
 (def mapa-servico
   {::http/routes rotas
-   ::http/port   8080
+   ::http/port   9999
    ::http/type   :jetty
    ::http/join?  false})
 
