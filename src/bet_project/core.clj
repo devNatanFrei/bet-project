@@ -39,16 +39,84 @@
    :body (json/generate-string @apostas)})
 
 
+(defn calcular-resultado-handicap [score-away score-home handicap]
+  (let [adjusted-score-home (+ score-home handicap)]
+    (cond
+      (> adjusted-score-home score-away) "Vitória do time da casa"
+      (< adjusted-score-home score-away) "Vitória do time visitante"
+      :else "Empate com o handicap")))
 
-
-
-(defn obter-eventos-nba [request]
+(defn handicap-asiatico [event-id handicap]
   (let [response (client/get "https://therundown-therundown-v1.p.rapidapi.com/sports/4/events/2024-11-13"
-                             {:headers {:x-rapidapi-key "sua-chave-api"
+                             {:headers {:x-rapidapi-key "8b7aaa01f5msh14e11a5a9881536p14b4b3jsn74e4cd56608c"
                                         :x-rapidapi-host "therundown-therundown-v1.p.rapidapi.com"}
                               :query-params {:include "scores"
                                              :affiliate_ids "1,2,3"
                                              :offset "0"}})
+        dados (json/parse-string (:body response) true)
+        eventos (:events dados)
+        evento (some #(when (= (:event_id %) event-id) %) eventos)]
+    (if evento
+      (let [score-away (:score_away (:score evento))
+            score-home (:score_home (:score evento))
+            resultado (calcular-resultado-handicap score-away score-home handicap)]
+        {:status 200
+         :body (json/generate-string {:score_away score-away
+                                      :score_home score-home
+                                      :resultado resultado})})
+      {:status 404
+       :body "Evento não encontrado"})))
+
+(defn handicap-asiatico-handler [request]
+  (let [params (json/parse-string (slurp (:body request)) true)
+        event-id (:event-id params)
+        handicap (:handicap params)]
+    (if (and event-id (number? handicap))
+      (handicap-asiatico event-id handicap)
+      {:status 400
+       :body "Parâmetros inválidos para cálculo do handicap asiático."})))
+
+
+(defn resultado-correto [event-id]
+  (let [response (client/get "https://therundown-therundown-v1.p.rapidapi.com/sports/4/events/2024-11-13"
+                             {:headers {:x-rapidapi-key "8b7aaa01f5msh14e11a5a9881536p14b4b3jsn74e4cd56608c"
+                                        :x-rapidapi-host "therundown-therundown-v1.p.rapidapi.com"}
+                              :query-params {:include "scores"
+                                             :affiliate_ids "1,2,3"
+                                             :offset "0"}})
+        dados (json/parse-string (:body response) true)
+        eventos (:events dados)
+        evento (some #(when (= (:event_id %) event-id) %) eventos)]
+    (if evento
+      (let [score-away (:score_away (:score evento))
+            score-home (:score_home (:score evento))
+            resultado (cond
+                        (> score-home score-away) "Vitória do time da casa"
+                        (< score-home score-away) "Vitória do time visitante"
+                        :else "Empate")]
+        {:status 200
+         :body (json/generate-string {:score_home score-home
+                                      :score_away score-away
+                                      :resultado resultado})})
+      {:status 404
+       :body "Evento não encontrado"})))
+
+
+(defn resultado-correto-handler [request]
+  (let [params (json/parse-string (slurp (:body request)) true)
+        event-id (:event-id params)]
+    (if event-id
+      (resultado-correto event-id)
+      {:status 400
+       :body "Parâmetro 'event-id' é obrigatório para obter o resultado correto."})))
+
+
+(defn obter-eventos-nba [request]
+  (let [response (client/get "https://therundown-therundown-v1.p.rapidapi.com/sports/4/events/2024-11-13" {:headers {:x-rapidapi-key "8b7aaa01f5msh14e11a5a9881536p14b4b3jsn74e4cd56608c"
+                                                                                                                     :x-rapidapi-host "therundown-therundown-v1.p.rapidapi.com"}
+                                                                                                           :query-params {:include "scores"
+                                                                                                                          :affiliate_ids "1,2,3"
+                                                                                                                          :offset "0"}})
         dados (:body response)]
     {:status 200 :body dados}))
 
@@ -88,14 +156,17 @@
      ["/eventos-nba" :get obter-eventos-nba :route-name :eventos-nba]
      ["/mercados-nba" :get obter-mercados-nba :route-name :mercados-nba]
      ["/schedules-nba" :get get-schedules-nba :route-name :get-nba-schedules]
-     ["/schedules-euro" :get get-schedules-euro :route-name :get-euro-schedules]}))
+     ["/schedules-euro" :get get-schedules-euro :route-name :get-euro-schedules]
+     ["/handicapAsia" :post handicap-asiatico-handler :route-name :handicap-asiatico]
+     ["/resultadoCorreto" :post resultado-correto-handler :route-name :resultado-correto]}))
 
 (def mapa-servico
   {::http/routes rotas
-   ::http/port   9999
+   ::http/port   8080
    ::http/type   :jetty
    ::http/join?  false})
 
 (defn -main []
+  
   (http/start (http/create-server mapa-servico))
-  (println "roda poooora"))
+)
