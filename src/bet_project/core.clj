@@ -121,8 +121,8 @@
     {:status 200 :body dados}))
 
 (defn obter-mercados-nba [request]
-  (let [response (client/get "https://therundown-therundown-v1.p.rapidapi.com/sports/4/openers/2024-11-11"
-                             {:headers {:x-rapidapi-key "sua-chave-api"
+  (let [response (client/get "https://therundown-therundown-v1.p.rapidapi.com/sports/4/openers/2024-11-13"
+                             {:headers {:x-rapidapi-key "8b7aaa01f5msh14e11a5a9881536p14b4b3jsn74e4cd56608c"
                                         :x-rapidapi-host "therundown-therundown-v1.p.rapidapi.com"}
                               :query-params {:offset ""
                                              :include "scores&include=all_periods"}})
