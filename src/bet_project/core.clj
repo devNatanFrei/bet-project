@@ -167,6 +167,5 @@
    ::http/join?  false})
 
 (defn -main []
-  
-  (http/start (http/create-server mapa-servico))
-)
+
+  (http/start (http/create-server mapa-servico)))
