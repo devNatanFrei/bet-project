@@ -26,8 +26,15 @@
         (swap! account-balance - amount)
         {:status 200}))))
 
+(defn get-schedules-nba [request]
+  (let [response (client/get "https://therundown-therundown-v1.p.rapidapi.com/sports/4/schedule" {:headers {:x-rapidapi-key "3e36075547msh24537dc0606651ap103e05jsna0572db9e77c"
+                                                                                                            :x-rapidapi-host "therundown-therundown-v1.p.rapidapi.com"}
+                                                                                                  :query-params {:limit "100"}})
+                         data (:body response)]
+                     {:status 200
+                      :body data}))
 
-(defn get-deposit [request]
+  (defn get-deposit [request]
   {:status 200
    :body (json/generate-string {:balance @account-balance})})
 
@@ -69,9 +76,10 @@
   (route/expand-routes
    #{["/deposit" :post deposit-handler :route-name :deposit]
      ["/balance" :get get-deposit :route-name :get-balance]
-     ["/eventsnba" :get get-events-nba :route-name :get-events]
-     ["/openersnba" :get get-openers-nba :route-name :get-openers]
-     ["/openerseuro" :get get-openers-euro :route-name :get-openers-euro]}))
+     ["/events-nba" :get get-events-nba :route-name :get-events]
+     ["/openers-nba" :get get-openers-nba :route-name :get-openers]
+     ["/schedules-nba" :get get-schedules-nba :route-name :get-schedules]
+     ["/openers-euro" :get get-openers-euro :route-name :get-openers-euro]}))
 
 
 (def service-map
@@ -80,6 +88,5 @@
    ::http/type   :jetty
    ::http/join?  false})
 
-(defn -main [& args]
   (http/start (http/create-server service-map))
-  (println "roda casseta"))
+  (println "rodou porra")
