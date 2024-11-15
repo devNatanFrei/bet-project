@@ -85,9 +85,10 @@
 
 (defn registrar-aposta-handler [request]
   (let [aposta (json/parse-string (slurp (:body request)) true)
+          event-id (:event-id aposta)
+           tipo-aposta (:tipo aposta)
         valor-aposta (:quantidade aposta)
-        tipo-aposta (:tipo aposta)
-        event-id (:event-id aposta)]
+       ]
     (if (and (number? valor-aposta) (<= valor-aposta @saldo-conta))
       (do
         (swap! saldo-conta - valor-aposta)
