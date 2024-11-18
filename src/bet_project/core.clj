@@ -106,17 +106,17 @@
 
 
 (defn registrar-aposta-handler [request]
-  (let [aposta (json/parse-string (slurp (:body request)) true)
-          event-id (:event-id aposta)
-           tipo-aposta (:tipo aposta)
-        valor-aposta (:quantidade aposta)
-       ]
+  (let [aposta (json/parse-string (slurp (:body request)) true) 
+        valor-aposta (:quantidade aposta)]
     (if (and (number? valor-aposta) (<= valor-aposta @saldo-conta))
       (do
         (swap! saldo-conta - valor-aposta)
-        (swap! apostas conj {:quantidade valor-aposta :tipo-aposta tipo-aposta :event-id event-id})
-        )
-      {:status 400 :body "Saldo insuficiente ou valor inválido para a aposta."})))
+        (swap! apostas conj {:quantidade valor-aposta})
+        {:status 200
+         :body "Aposta registrada com sucesso!"})
+      {:status 400
+       :body "Saldo insuficiente ou valor inválido para a aposta."})))
+
 
 (defn obter-aposta-handler [request]
   {:status 200
