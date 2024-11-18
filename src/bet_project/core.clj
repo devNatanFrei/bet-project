@@ -172,7 +172,7 @@
      ["/mercados-nba" :get obter-mercados-nba :route-name :mercados-nba]
      ["/schedules-nba" :get get-schedules-nba :route-name :get-nba-schedules]
      ["/schedules-euro" :get get-schedules-euro :route-name :get-euro-schedules]
-     ["/overUnder" :post over-under-handler :route-name :over-under]
+     ["/overUnderNba" :post over-under-handler :route-name :over-under]
     ["/resultadoCorretoNba" :post resultado-correto-nba-handler :route-name :resultado-correto]
    }))
 
