@@ -160,12 +160,20 @@
     {:status 200
      :body data}))
 
+(defn get-moneyline[request]
+  (let [response (client/get "https://therundown-therundown-v1.p.rapidapi.com/lines/23f1b36907145528a3c54627323c5c30/moneyline" {:headers {:x-rapidapi-key "8b7aaa01f5msh14e11a5a9881536p14b4b3jsn74e4cd56608c"
+                                                                                                  :x-rapidapi-host "therundown-therundown-v1.p.rapidapi.com"}
+                                                                                        :query-params {:include "all_periods"}})
+        data (:body response)]
+    {:status 200
+      :body data}))
 
 
 (def rotas
   (route/expand-routes
    #{["/depositar" :post depositar-handler :route-name :depositar]
      ["/saldo" :get obter-saldo-handler :route-name :saldo]
+     ["/moneyline" :get get-moneyline :route-name :moneyline]
      ["/apostar" :post registrar-aposta-handler :route-name :registrar-aposta]
      ["/qtdApostada" :get obter-aposta-handler :route-name :obter-apostas]
      ["/eventos-nba" :get obter-eventos-nba :route-name :eventos-nba]
