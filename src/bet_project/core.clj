@@ -12,7 +12,7 @@
 (defn depositar-handler
   [request]
   (let [quantidade (:quantidade (json/parse-string (slurp (:body request)) true))]
-    (if (number? quantidade)
+    (if (and (number? quantidade) (> quantidade 0))
       (do
         (swap! saldo-conta + quantidade)
         {:status 200
