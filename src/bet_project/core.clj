@@ -24,14 +24,8 @@
   {:status 200
    :body (json/generate-string {:saldo @saldo-conta})})
 
-(defn calcular-resultado-nba-handicap [score-away score-home]
-  (let [adjusted-score-home (+ score-home 1.5)]
-    (cond
-      (> adjusted-score-home score-away) "Vitória do time da casa"
-      (< adjusted-score-home score-away) "Vitória do time visitante"
-      :else "Empate com o handicap")))
 
-(defn handicap-asiatico-nba [event-id]
+(defn resultado-correto-nba [event-id palpite]
   (let [response (client/get "https://therundown-therundown-v1.p.rapidapi.com/sports/4/events/2024-11-13"
                              {:headers {:x-rapidapi-key "8b7aaa01f5msh14e11a5a9881536p14b4b3jsn74e4cd56608c"
                                         :x-rapidapi-host "therundown-therundown-v1.p.rapidapi.com"}
@@ -44,43 +38,71 @@
     (if evento
       (let [score-away (:score_away (:score evento))
             score-home (:score_home (:score evento))
-            resultado (calcular-resultado-nba-handicap score-away score-home)]
-        {:status 200
-         :body (json/generate-string {:score_away score-away
-                                      :score_home score-home
-                                      :resultado resultado})})
-      {:status 404
-       :body "Evento não encontrado"})))
-
-
-(defn resultado-correto-nba [event-id]
-  (let [response (client/get "https://therundown-therundown-v1.p.rapidapi.com/sports/4/events/2024-11-13"
-                             {:headers {:x-rapidapi-key "8b7aaa01f5msh14e11a5a9881536p14b4b3jsn74e4cd56608c"
-                                        :x-rapidapi-host "therundown-therundown-v1.p.rapidapi.com"}
-                              :query-params {:include "scores"
-                                             :affiliate_ids "1,2,3"
-                                             :offset "0"}})
-        dados (json/parse-string (:body response) true)
-        eventos (:events dados)
-        evento (some #(when (= (:event_id %) event-id) %) eventos)]
-    (if evento
-      (let [score-away (:score_away (:score evento))
-            score-home (:score_home (:score evento))
-            resultado (cond
-                        (> score-home score-away) "Vitória do time da casa"
-                        (< score-home score-away) "Vitória do time visitante"
-                        :else "Empate")]
+            resultado-real (cond
+                             (> score-home score-away) "Vitória do time da casa"
+                             (< score-home score-away) "Vitória do time visitante"
+                             :else "Empate")
+            acertou? (= palpite resultado-real)]
         {:status 200
          :body (json/generate-string {:score_home score-home
                                       :score_away score-away
+                                      :resultado_real resultado-real
+                                      :palpite palpite
+                                      :acertou acertou?})})
+      {:status 404
+       :body "Evento não encontrado"})))
+
+
+(defn resultado-correto-nba-handler [request]
+  (let [params (json/parse-string (slurp (:body request)) true)
+        event-id (:event-id params)
+        palpite (:palpite params)]
+    (if (and event-id palpite)
+      (resultado-correto-nba event-id palpite)
+      {:status 400
+       :body "Parâmetros 'event-id' e 'palpite' são obrigatórios."})))
+
+
+
+(defn calcular-over-under [score-away score-home linha]
+  (let [total-pontos (+ score-away score-home)]
+    (cond
+      (> total-pontos linha) "Over"
+      (< total-pontos linha) "Under"
+      :else "Exatamente na linha (Push)")))
+ 
+
+(defn prever-over-under [event-id linha]
+  (let [response (client/get "https://therundown-therundown-v1.p.rapidapi.com/sports/4/events/2024-11-13"
+                             {:headers {:x-rapidapi-key "8b7aaa01f5msh14e11a5a9881536p14b4b3jsn74e4cd56608c"
+                                        :x-rapidapi-host "therundown-therundown-v1.p.rapidapi.com"}
+                              :query-params {:include "scores"
+                                             :affiliate_ids "1,2,3"
+                                             :offset "0"}})
+        dados (json/parse-string (:body response) true)
+        eventos (:events dados)
+        evento (some #(when (= (:event_id %) event-id) %) eventos)]
+    (if evento
+      (let [score-away (:score_away (:score evento))
+            score-home (:score_home (:score evento))
+            resultado (calcular-over-under score-away score-home linha)]
+        {:status 200
+         :body (json/generate-string {:score_away score-away
+                                      :score_home score-home
+                                      :linha linha
                                       :resultado resultado})})
       {:status 404
        :body "Evento não encontrado"})))
 
-(defn resultado-correto-nba-handler [request]
+
+(defn over-under-handler [request]
   (let [params (json/parse-string (slurp (:body request)) true)
-        event-id (:event-id params)]
-    (resultado-correto-nba event-id)))
+        event-id (:event-id params)
+        linha (:linha params)]
+    (if (and event-id linha)
+      (prever-over-under event-id linha)
+      {:status 400
+       :body "Parâmetros 'event-id' e 'linha' são obrigatórios."})))
 
 
 (defn registrar-aposta-handler [request]
@@ -93,31 +115,13 @@
       (do
         (swap! saldo-conta - valor-aposta)
         (swap! apostas conj {:quantidade valor-aposta :tipo-aposta tipo-aposta :event-id event-id})
-        (cond 
-          (= tipo-aposta "handicap") (handicap-asiatico-nba event-id)
-          (= tipo-aposta "resultado") (resultado-correto-nba event-id)
-          :else {:status 400 :body "Tipo de aposta inválido. Use 'handicap' ou 'resultado'."}))
+        )
       {:status 400 :body "Saldo insuficiente ou valor inválido para a aposta."})))
 
 (defn obter-aposta-handler [request]
   {:status 200
    :body (json/generate-string @apostas)})
 
-
-
-
-(defn escolher-tipo-nba-handler [request]
-  (let [params (json/parse-string (slurp (:body request)) true)
-        event-id (:event-id params)
-        tipo (:tipo params)]
-    (if (and event-id tipo)
-      (cond 
-        (= tipo "handicap") (handicap-asiatico-nba event-id)
-        (= tipo "resultado") (resultado-correto-nba event-id)
-        :else {:status 400
-               :body "Tipo inválido. Use 'handicap' ou 'resultado'."})
-      {:status 400
-       :body "Parâmetros 'event-id' e 'tipo' são obrigatórios."})))
 
 (defn obter-eventos-nba [request]
   (let [response (client/get "https://therundown-therundown-v1.p.rapidapi.com/sports/4/events/2024-11-13"
@@ -156,10 +160,7 @@
     {:status 200
      :body data}))
 
-(defn handicap-asiatico-handler [request]
-  (let [params (json/parse-string (slurp (:body request)) true)
-        event-id (:event-id params)]
-    (handicap-asiatico-nba event-id)))
+
 
 (def rotas
   (route/expand-routes
@@ -171,9 +172,9 @@
      ["/mercados-nba" :get obter-mercados-nba :route-name :mercados-nba]
      ["/schedules-nba" :get get-schedules-nba :route-name :get-nba-schedules]
      ["/schedules-euro" :get get-schedules-euro :route-name :get-euro-schedules]
-     ["/handicapAsiaNba" :post handicap-asiatico-handler :route-name :handicap-asiatico]
-     ["/resultadoCorretoNba" :post resultado-correto-nba-handler :route-name :resultado-correto]
-     ["/escolherTipoNba" :post escolher-tipo-nba-handler :route-name :escolher-tipo-nba]}))
+     ["/overUnder" :post over-under-handler :route-name :over-under]
+    ["/resultadoCorretoNba" :post resultado-correto-nba-handler :route-name :resultado-correto]
+   }))
 
 (def mapa-servico
   {::http/routes rotas
