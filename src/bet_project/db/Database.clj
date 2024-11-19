@@ -10,7 +10,7 @@
    :port     3306
    :user     "user"
    :password "123456"})
-
+(println "Sucesso na conexao")
 (defn create-saldo-table []
   (jdbc/execute! db-spec
                  ["CREATE TABLE IF NOT EXISTS saldo (

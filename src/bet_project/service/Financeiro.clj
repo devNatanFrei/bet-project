@@ -6,7 +6,7 @@
 (defn depositar-handler [request]
   (let [params (json/parse-string (slurp (:body request)) true)
         quantidade (:quantidade params)]
-    (if (number? quantidade)
+    (if (and (number? quantidade) (> quantidade 0))
       (do
         (atualizar-saldo quantidade)
         {:status 200

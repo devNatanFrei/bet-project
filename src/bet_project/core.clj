@@ -1,5 +1,6 @@
 (ns bet-project.core
   (:require
+    [bet-project.service.Financeiro :refer [depositar-handler obter-saldo-handler]]
    [io.pedestal.http :as http]
    [io.pedestal.http.route :as route]
    [cheshire.core :as json]
@@ -7,23 +8,6 @@
 
 (def saldo-conta (atom 0))
 (def apostas (atom []))
-
-
-(defn depositar-handler
-  [request]
-  (let [quantidade (:quantidade (json/parse-string (slurp (:body request)) true))]
-    (if (and (number? quantidade) (> quantidade 0))
-      (do
-        (swap! saldo-conta + quantidade)
-        {:status 200
-         :body "Depósito realizado com sucesso!"})
-      {:status 400
-       :body "Valor inválido para depósito."})))
-
-(defn obter-saldo-handler [request]
-  {:status 200
-   :body (json/generate-string {:saldo @saldo-conta})})
-
 
 (defn resultado-correto-nba [event-id palpite]
   (let [response (client/get "https://therundown-therundown-v1.p.rapidapi.com/sports/4/events/2024-11-13"
@@ -192,4 +176,4 @@
 
 (defn -main []
   (http/start (http/create-server mapa-servico))
-  (println "Roda porra"))
+  (println "Servidor rodando na porta 9999"))

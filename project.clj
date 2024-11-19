@@ -9,7 +9,10 @@
                  [io.pedestal/pedestal.jetty "0.5.7"]
                  [org.clojure/data.json "0.2.6"]
                  [org.slf4j/slf4j-simple "1.7.28"]
-                 [clj-http "3.12.3"]]
+                 [clj-http "3.12.3"]
+                 [org.clojure/java.jdbc "0.7.12"]
+                 [mysql/mysql-connector-java "8.0.33"]
+                 ]
   :main ^:skip-aot bet-project.core
   :target-path "target/%s"
   :profiles {:uberjar {:aot :all
