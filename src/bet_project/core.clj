@@ -1,14 +1,19 @@
 (ns bet-project.core
   (:require
     [bet-project.service.Financeiro :refer [depositar-handler obter-saldo-handler]]
-   [io.pedestal.http :as http]
-   [io.pedestal.http.route :as route]
-   [cheshire.core :as json]
-   [clj-http.client :as client]))
+    [io.pedestal.http :as http]
+    [io.pedestal.http.route :as route]
+    [cheshire.core :as json]
+    [clj-http.client :as client])
+  (:import (java.time LocalDate)
+           (java.time.format DateTimeFormatter)))
 
 (def saldo-conta (atom (bet-project.db.Database/obter-saldo)))
 (def apostas (atom []))
 
+(defn today-date []
+  (let [formatter (DateTimeFormatter/ofPattern "yyyy-MM-dd")]
+    (.format (LocalDate/now) formatter)))
 (defn resultado-correto-nba [event-id palpite]
   (let [response (client/get "https://therundown-therundown-v1.p.rapidapi.com/sports/4/events/2024-11-13"
                              {:headers {:x-rapidapi-key "8b7aaa01f5msh14e11a5a9881536p14b4b3jsn74e4cd56608c"
@@ -37,6 +42,26 @@
       {:status 404
        :body "Evento não encontrado"})))
 
+(defn open-odds [_]
+  (try
+    (let [date (today-date)
+          response (client/get (str "https://therundown-therundown-v1.p.rapidapi.com/sports/4/openers/" date)
+                               {:headers {:x-rapidapi-key "3918fd0ba5msh35b6601a595c453p1fb7dajsn11855839b9d9"
+                                          :x-rapidapi-host "therundown-therundown-v1.p.rapidapi.com"}
+                                :query-params {:offset "180"
+                                               :include "scores&include=all_periods"}})]
+      (json/parse-string (:body response) true))
+    (catch Exception e
+      (println (str "Erro ao buscar odds abertas: " (.getMessage e)))
+      {:status 404
+       :body "Erro ao buscar odds abertas"})))
+
+
+(defn get-open-odds [request]
+  (let [id (:id (:json-body request))
+        odds (open-odds id)]
+    {:status 200
+     :body odds}))
 
 (defn resultado-correto-nba-handler [request]
   (let [params (json/parse-string (slurp (:body request)) true)
@@ -55,7 +80,7 @@
       (> total-pontos linha) "Over"
       (< total-pontos linha) "Under"
       :else "Exatamente na linha (Push)")))
- 
+
 
 (defn prever-over-under [event-id linha]
   (let [response (client/get "https://therundown-therundown-v1.p.rapidapi.com/sports/4/events/2024-11-13"
@@ -95,14 +120,14 @@
   (let [aposta (json/parse-string (slurp (:body request)) true)
        event-id (:event-id aposta)
         valor-aposta (:quantidade aposta)
-        tipo-aposta (:tipo aposta) 
+        tipo-aposta (:tipo aposta)
         palpite (:palpite aposta)
         linha (:linha aposta)]
     (if (and (number? valor-aposta) (<= valor-aposta @saldo-conta))
       (do
-        (swap! saldo-conta - valor-aposta)  
+        (swap! saldo-conta - valor-aposta)
         (swap! apostas conj {:quantidade valor-aposta :tipo tipo-aposta})
-        
+
         (cond
           (= tipo-aposta "resultado-correto")
           (if (and event-id palpite)
@@ -118,7 +143,7 @@
 
           :else
           {:status 400 :body "Tipo de aposta inválido."}))
-      
+
       {:status 400
        :body "Saldo insuficiente ou valor inválido para a aposta."})))
 
@@ -180,6 +205,7 @@
    #{["/depositar" :post depositar-handler :route-name :depositar]
      ["/saldo" :get obter-saldo-handler :route-name :saldo]
      ["/moneyline" :get get-moneyline :route-name :moneyline]
+     ["/testeOdds" :get get-open-odds :route-name :teste]
      ["/apostar" :post registrar-aposta-handler :route-name :registrar-aposta]
      ["/qtdApostada" :get obter-aposta-handler :route-name :obter-apostas]
      ["/eventos-nba" :get obter-eventos-nba :route-name :eventos-nba]
