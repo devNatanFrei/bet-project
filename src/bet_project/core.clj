@@ -27,12 +27,13 @@
                              (< score-home score-away) "Vitória do time visitante"
                              :else "Empate")
             acertou? (= palpite resultado-real)]
-        {:status 200
-         :body (json/generate-string {:score_home score-home
-                                      :score_away score-away
-                                      :resultado_real resultado-real
-                                      :palpite palpite
-                                      :acertou acertou?})})
+       {:status 200
+ :body {:score_home score-home
+        :score_away score-away
+        :resultado_real resultado-real
+        :palpite palpite
+        :acertou acertou?}}
+)
       {:status 404
        :body "Evento não encontrado"})))
 
@@ -71,10 +72,11 @@
             score-home (:score_home (:score evento))
             resultado (calcular-over-under score-away score-home linha)]
         {:status 200
-         :body (json/generate-string {:score_away score-away
-                                      :score_home score-home
-                                      :linha linha
-                                      :resultado resultado})})
+ :body {:score_away score-away
+        :score_home score-home
+        :linha linha
+        :resultado resultado}}
+)
       {:status 404
        :body "Evento não encontrado"})))
 
@@ -111,7 +113,7 @@
           (= tipo-aposta "over-under")
           (if (and event-id linha)
             (let [response (prever-over-under event-id linha)]
-              {:status 200 :body (json/generate-string response)})
+              {:status 200 :body  response})
             {:status 400 :body "Parâmetros 'event-id' e 'linha' são obrigatórios."})
 
           :else
