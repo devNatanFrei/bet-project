@@ -14,8 +14,9 @@
 (defn today-date []
   (let [formatter (DateTimeFormatter/ofPattern "yyyy-MM-dd")]
     (.format (LocalDate/now) formatter)))
+
 (defn resultado-correto-nba [event-id palpite]
-  (let [response (client/get "https://therundown-therundown-v1.p.rapidapi.com/sports/4/events/2024-11-13"
+  (let [date (today-date) response (client/get ("https://therundown-therundown-v1.p.rapidapi.com/sports/4/events/" date)
                              {:headers {:x-rapidapi-key "8b7aaa01f5msh14e11a5a9881536p14b4b3jsn74e4cd56608c"
                                         :x-rapidapi-host "therundown-therundown-v1.p.rapidapi.com"}
                               :query-params {:include "scores"
@@ -83,7 +84,7 @@
 
 
 (defn prever-over-under [event-id linha]
-  (let [response (client/get "https://therundown-therundown-v1.p.rapidapi.com/sports/4/events/2024-11-13"
+  (let [date (today-date) response (client/get (str "https://therundown-therundown-v1.p.rapidapi.com/sports/4/events/" date)
                              {:headers {:x-rapidapi-key "8b7aaa01f5msh14e11a5a9881536p14b4b3jsn74e4cd56608c"
                                         :x-rapidapi-host "therundown-therundown-v1.p.rapidapi.com"}
                               :query-params {:include "scores"
@@ -155,7 +156,8 @@
 
 
 (defn obter-eventos-nba [request]
-  (let [response (client/get "https://therundown-therundown-v1.p.rapidapi.com/sports/4/events/2024-11-13"
+  (let [date (today-date)
+        response (client/get (str "https://therundown-therundown-v1.p.rapidapi.com/sports/4/events/" date)
                              {:headers {:x-rapidapi-key "8b7aaa01f5msh14e11a5a9881536p14b4b3jsn74e4cd56608c"
                                         :x-rapidapi-host "therundown-therundown-v1.p.rapidapi.com"}
                               :query-params {:include "scores"
@@ -165,7 +167,8 @@
     {:status 200 :body dados}))
 
 (defn obter-mercados-nba [request]
-  (let [response (client/get "https://therundown-therundown-v1.p.rapidapi.com/sports/4/openers/2024-11-13"
+  (let [date (today-date)
+        response (client/get (str "https://therundown-therundown-v1.p.rapidapi.com/sports/4/openers/" date)
                              {:headers {:x-rapidapi-key "8b7aaa01f5msh14e11a5a9881536p14b4b3jsn74e4cd56608c"
                                         :x-rapidapi-host "therundown-therundown-v1.p.rapidapi.com"}
                               :query-params {:offset ""
