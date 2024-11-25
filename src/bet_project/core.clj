@@ -1,6 +1,7 @@
 (ns bet-project.core
   (:require
     [bet-project.service.Financeiro :refer [depositar-handler obter-saldo-handler]]
+    [bet-project.service.Nba :refer [obter-mercados-nba resultado-correto-nba  obter-eventos-nba  resultado-correto-nba-handler get-schedules-nba]]
     [io.pedestal.http :as http]
     [io.pedestal.http.route :as route]
     [cheshire.core :as json]
@@ -10,39 +11,9 @@
 
 (def saldo-conta (atom (bet-project.db.Database/obter-saldo)))
 (def apostas (atom []))
-
 (defn today-date []
   (let [formatter (DateTimeFormatter/ofPattern "yyyy-MM-dd")]
     (.format (LocalDate/now) formatter)))
-
-(defn resultado-correto-nba [event-id palpite]
-  (let [date (today-date) response (client/get ("https://therundown-therundown-v1.p.rapidapi.com/sports/4/events/" date)
-                             {:headers {:x-rapidapi-key "8b7aaa01f5msh14e11a5a9881536p14b4b3jsn74e4cd56608c"
-                                        :x-rapidapi-host "therundown-therundown-v1.p.rapidapi.com"}
-                              :query-params {:include "scores"
-                                             :affiliate_ids "1,2,3"
-                                             :offset "0"}})
-        dados (json/parse-string (:body response) true)
-        eventos (:events dados)
-        evento (some #(when (= (:event_id %) event-id) %) eventos)]
-    (if evento
-      (let [score-away (:score_away (:score evento))
-            score-home (:score_home (:score evento))
-            resultado-real (cond
-                             (> score-home score-away) "Vitória do time da casa"
-                             (< score-home score-away) "Vitória do time visitante"
-                             :else "Empate")
-            acertou? (= palpite resultado-real)]
-       {:status 200
- :body {:score_home score-home
-        :score_away score-away
-        :resultado_real resultado-real
-        :palpite palpite
-        :acertou acertou?}}
-)
-      {:status 404
-       :body "Evento não encontrado"})))
-
 (defn open-odds [_]
   (try
     (let [date (today-date)
@@ -63,15 +34,6 @@
         odds (open-odds id)]
     {:status 200
      :body odds}))
-
-(defn resultado-correto-nba-handler [request]
-  (let [params (json/parse-string (slurp (:body request)) true)
-        event-id (:event-id params)
-        palpite (:palpite params)]
-    (if (and event-id palpite)
-      (resultado-correto-nba event-id palpite)
-      {:status 400
-       :body "Parâmetros 'event-id' e 'palpite' são obrigatórios."})))
 
 
 
@@ -153,37 +115,6 @@
 (defn obter-aposta-handler [request]
   {:status 200
    :body (json/generate-string @apostas)})
-
-
-(defn obter-eventos-nba [request]
-  (let [date (today-date)
-        response (client/get (str "https://therundown-therundown-v1.p.rapidapi.com/sports/4/events/" date)
-                             {:headers {:x-rapidapi-key "8b7aaa01f5msh14e11a5a9881536p14b4b3jsn74e4cd56608c"
-                                        :x-rapidapi-host "therundown-therundown-v1.p.rapidapi.com"}
-                              :query-params {:include "scores"
-                                             :affiliate_ids "1,2,3"
-                                             :offset "0"}})
-        dados (:body response)]
-    {:status 200 :body dados}))
-
-(defn obter-mercados-nba [request]
-  (let [date (today-date)
-        response (client/get (str "https://therundown-therundown-v1.p.rapidapi.com/sports/4/openers/" date)
-                             {:headers {:x-rapidapi-key "8b7aaa01f5msh14e11a5a9881536p14b4b3jsn74e4cd56608c"
-                                        :x-rapidapi-host "therundown-therundown-v1.p.rapidapi.com"}
-                              :query-params {:offset ""
-                                             :include "scores&include=all_periods"}})
-        dados (:body response)]
-    {:status 200 :body dados}))
-
-(defn get-schedules-nba [request]
-  (let [response (client/get "https://therundown-therundown-v1.p.rapidapi.com/sports/4/schedule"
-                             {:headers {:x-rapidapi-key "3e36075547msh24537dc0606651ap103e05jsna0572db9e77c"
-                                        :x-rapidapi-host "therundown-therundown-v1.p.rapidapi.com"}
-                              :query-params {:limit "100"}})
-        data (:body response)]
-    {:status 200
-     :body data}))
 
 (defn get-schedules-euro [request]
   (let [response (client/get "https://therundown-therundown-v1.p.rapidapi.com/sports/17/schedule"

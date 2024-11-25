@@ -19,17 +19,15 @@
                    )"])
   (jdbc/execute! db-spec
                  ["INSERT INTO saldo (valor) VALUES (0.0) ON DUPLICATE KEY UPDATE id=id"]))
-
 (defn create-apostas-table []
   (jdbc/execute! db-spec
                  ["CREATE TABLE IF NOT EXISTS apostas (
-                     id INT AUTO_INCREMENT PRIMARY KEY,
-                     valor DECIMAL(15,2) NOT NULL DEFAULT 0.0,
-                     timeEscolhido VARCHAR(255) NOT NULL,
-                     odds DECIMAL(5,2) NOT NULL DEFAULT 1.0,
-                     resultado ENUM('ganhou', 'perdeu') DEFAULT NULL
+                     event_id VARCHAR(255) PRIMARY KEY NOT NULL,
+                     quantidade INTEGER NOT NULL ,
+                     tipo VARCHAR(255) NOT NULL,
+                     palpite VARCHAR(255) NOT NULL
                    )"])
-)
+  )
 (create-saldo-table)
 (create-apostas-table)
 
@@ -39,3 +37,8 @@
 
 (defn atualizar-saldo [quantidade]
   (jdbc/execute! db-spec ["UPDATE saldo SET valor = valor + ?" quantidade]))
+
+(defn inserir-aposta [event-id quantidade tipo palpite]
+  (let [query "INSERT INTO apostas (event_id, quantidade, tipo, palpite) VALUES (?, ?, ?, ?)"]
+    (jdbc/execute! db-spec [query event-id quantidade tipo palpite])))
+
