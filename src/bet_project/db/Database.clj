@@ -8,7 +8,7 @@
    :dbname   "bet"
    :host     "localhost"
    :port     3306
-   :user     "root"
+   :user     "user"
    :password "123456"})
 (println "Sucesso na conexao")
 (defn create-saldo-table []
@@ -20,7 +20,18 @@
   (jdbc/execute! db-spec
                  ["INSERT INTO saldo (valor) VALUES (0.0) ON DUPLICATE KEY UPDATE id=id"]))
 
+(defn create-apostas-table []
+  (jdbc/execute! db-spec
+                 ["CREATE TABLE IF NOT EXISTS apostas (
+                     id INT AUTO_INCREMENT PRIMARY KEY,
+                     valor DECIMAL(15,2) NOT NULL DEFAULT 0.0,
+                     timeEscolhido VARCHAR(255) NOT NULL,
+                     odds DECIMAL(5,2) NOT NULL DEFAULT 1.0,
+                     resultado ENUM('ganhou', 'perdeu') DEFAULT NULL
+                   )"])
+)
 (create-saldo-table)
+(create-apostas-table)
 
 (defn obter-saldo []
   (let [result (jdbc/query db-spec ["SELECT valor FROM saldo LIMIT 1"])]
