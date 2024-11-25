@@ -90,16 +90,36 @@
 
 
 (defn registrar-aposta-handler [request]
-  (let [aposta (json/parse-string (slurp (:body request)) true) 
-        valor-aposta (:quantidade aposta)]
+  (let [aposta (json/parse-string (slurp (:body request)) true)
+       event-id (:event-id aposta)
+        valor-aposta (:quantidade aposta)
+        tipo-aposta (:tipo aposta) 
+        palpite (:palpite aposta)
+        linha (:linha aposta)]
     (if (and (number? valor-aposta) (<= valor-aposta @saldo-conta))
       (do
-        (swap! saldo-conta - valor-aposta)
-        (swap! apostas conj {:quantidade valor-aposta})
-        {:status 200
-         :body "Aposta registrada com sucesso!"})
+        (swap! saldo-conta - valor-aposta)  
+        (swap! apostas conj {:quantidade valor-aposta :tipo tipo-aposta})
+        
+        (cond
+          (= tipo-aposta "resultado-correto")
+          (if (and event-id palpite)
+            (let [response (resultado-correto-nba event-id palpite)]
+              {:status 200 :body (json/generate-string response)})
+            {:status 400 :body "Parâmetros 'event-id' e 'palpite' são obrigatórios."})
+
+          (= tipo-aposta "over-under")
+          (if (and event-id linha)
+            (let [response (prever-over-under event-id linha)]
+              {:status 200 :body (json/generate-string response)})
+            {:status 400 :body "Parâmetros 'event-id' e 'linha' são obrigatórios."})
+
+          :else
+          {:status 400 :body "Tipo de aposta inválido."}))
+      
       {:status 400
        :body "Saldo insuficiente ou valor inválido para a aposta."})))
+
 
 
 (defn obter-aposta-handler [request]

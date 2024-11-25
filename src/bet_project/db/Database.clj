@@ -8,7 +8,7 @@
    :dbname   "bet"
    :host     "localhost"
    :port     3306
-   :user     "user"
+   :user     "root"
    :password "123456"})
 (println "Sucesso na conexao")
 (defn create-saldo-table []
