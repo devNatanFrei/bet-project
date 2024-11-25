@@ -6,7 +6,7 @@
    [cheshire.core :as json]
    [clj-http.client :as client]))
 
-(def saldo-conta (atom 0))
+(def saldo-conta (atom (bet-project.db.Database/obter-saldo)))
 (def apostas (atom []))
 
 (defn resultado-correto-nba [event-id palpite]
