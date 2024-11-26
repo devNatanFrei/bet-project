@@ -69,46 +69,69 @@
        :body "Evento não encontrado"})))
 
 
-(defn over-under-handler [request]
-  (let [params (json/parse-string (slurp (:body request)) true)
-        event-id (:event-id params)
-        linha (:linha params)]
-    (if (and event-id linha)
-      (prever-over-under event-id linha)
-      {:status 400
-       :body "Parâmetros 'event-id' e 'linha' são obrigatórios."})))
+;; (defn over-under-handler [request]
+;;   (let [params (json/parse-string (slurp (:body request)) true)
+;;         event-id (:event-id params)
+;;         linha (:linha params)]
+;;     (if (and event-id linha)
+;;       (prever-over-under event-id linha)
+;;       {:status 400
+;;        :body "Parâmetros 'event-id' e 'linha' são obrigatórios."})))
 
 
 (defn registrar-aposta-handler [request]
-  (let [aposta (json/parse-string (slurp (:body request)) true)
-       event-id (:event-id aposta)
-        valor-aposta (:quantidade aposta)
-        tipo-aposta (:tipo aposta)
-        palpite (:palpite aposta)
-        linha (:linha aposta)]
-    (if (and (number? valor-aposta) (<= valor-aposta @saldo-conta))
-      (do
-        (swap! saldo-conta - valor-aposta)
-        (swap! apostas conj {:quantidade valor-aposta :tipo tipo-aposta})
+   (let [aposta (json/parse-string (slurp (:body request)) true)
+         event-id (:event-id aposta)
+         valor-aposta (:quantidade aposta)
+         esporte (:esporte aposta)
+         tipo-aposta (:tipo aposta)
+         palpite (:palpite aposta)
+         linha (:linha aposta)]
+     (if (and (number? valor-aposta) (<= valor-aposta @saldo-conta))
+       (do
+         (swap! saldo-conta - valor-aposta)
+         (swap! apostas conj {:quantidade valor-aposta :tipo tipo-aposta})
+         (cond
+           (= esporte "basquete")
+           (cond
+             (= tipo-aposta "resultado-correto")
+             (if (and event-id palpite)
+               (let [response (resultado-correto-nba event-id palpite)]
+                 {:status 200 :body (json/generate-string response)})
+               {:status 400 :body "Parâmetros 'event-id' e 'palpite' são obrigatórios."})
 
-        (cond
-          (= tipo-aposta "resultado-correto")
-          (if (and event-id palpite)
-            (let [response (resultado-correto-nba event-id palpite)]
-              {:status 200 :body (json/generate-string response)})
-            {:status 400 :body "Parâmetros 'event-id' e 'palpite' são obrigatórios."})
+             (= tipo-aposta "over-under")
+             (if (and event-id linha)
+               (let [response (prever-over-under event-id linha)]
+                 {:status 200 :body response})
+               {:status 400 :body "Parâmetros 'event-id' e 'linha' são obrigatórios."})
 
-          (= tipo-aposta "over-under")
-          (if (and event-id linha)
-            (let [response (prever-over-under event-id linha)]
-              {:status 200 :body  response})
-            {:status 400 :body "Parâmetros 'event-id' e 'linha' são obrigatórios."})
+             :else
+             {:status 400 :body "Tipo de aposta inválido."})
 
-          :else
-          {:status 400 :body "Tipo de aposta inválido."}))
+           (= esporte "futebol")
+           (cond
+             (= tipo-aposta "resultado-correto")
+             (if (and event-id palpite)
+               (let [response (resultado-correto-nba event-id palpite)]
+                 {:status 200 :body (json/generate-string response)})
+               {:status 400 :body "Parâmetros 'event-id' e 'palpite' são obrigatórios."})
 
-      {:status 400
-       :body "Saldo insuficiente ou valor inválido para a aposta."})))
+             (= tipo-aposta "over-under")
+             (if (and event-id linha)
+               (let [response (prever-over-under event-id linha)]
+                 {:status 200 :body response})
+               {:status 400 :body "Parâmetros 'event-id' e 'linha' são obrigatórios."})
+
+             :else
+             {:status 400 :body "Tipo de aposta inválido."}))
+
+         :else
+       {:status 400 :body "Esporte inválido."}))
+     {:status 400 :body "Saldo insuficiente ou valor da aposta inválido."}))
+
+          
+        
 
 
 
@@ -145,8 +168,7 @@
      ["/eventos-nba" :get obter-eventos-nba :route-name :eventos-nba]
      ["/mercados-nba" :get obter-mercados-nba :route-name :mercados-nba]
      ["/schedules-nba" :get get-schedules-nba :route-name :get-nba-schedules]
-     ["/schedules-euro" :get get-schedules-euro :route-name :get-euro-schedules]
-     ["/overUnderNba" :post over-under-handler :route-name :over-under]
+     ["/schedules-euro" :get get-schedules-euro :route-name :get-euro-schedules] 
     ["/resultadoCorretoNba" :post resultado-correto-nba-handler :route-name :resultado-correto]
    }))
 
