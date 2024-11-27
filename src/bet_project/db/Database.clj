@@ -8,9 +8,10 @@
    :dbname   "bet"
    :host     "localhost"
    :port     3306
-   :user     "user"
+   :user     "root"
    :password "123456"})
 (println "Sucesso na conexao")
+
 (defn create-saldo-table []
   (jdbc/execute! db-spec
                  ["CREATE TABLE IF NOT EXISTS saldo (
@@ -39,7 +40,7 @@
 (defn atualizar-saldo [quantidade]
   (jdbc/execute! db-spec ["UPDATE saldo SET valor = valor + ?" quantidade]))
 
-(defn inserir-aposta [event-id quantidade tipo palpite]
-  (let [query "INSERT INTO apostas (event_id, quantidade, tipo, palpite) VALUES (?, ?, ?, ?)"]
-    (jdbc/execute! db-spec [query event-id quantidade tipo palpite])))
+(defn inserir-aposta [event-id quantidade esporte tipo palpite linha]
+  (let [query "INSERT INTO apostas (event_id, quantidade, esporte, tipo, palpite, linha) VALUES (?, ?, ?, ?)"]
+    (jdbc/execute! db-spec [query event-id quantidade esporte tipo palpite linha])))
 

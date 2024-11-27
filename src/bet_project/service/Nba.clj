@@ -88,7 +88,7 @@
           (if (>= saldo-atual quantidade)
             (do
               (atualizar-saldo (- quantidade))
-              (inserir-aposta event-id quantidade tipo palpite)
+            
               {:status 200
                :body (json/generate-string {:message "Aposta registrada com sucesso!"
                                             :saldo   (obter-saldo)})})

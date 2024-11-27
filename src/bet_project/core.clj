@@ -1,16 +1,53 @@
 (ns bet-project.core
   (:require
-    [bet-project.service.Financeiro :refer [depositar-handler obter-saldo-handler]]
-    [bet-project.service.Nba :refer [obter-mercados-nba resultado-correto-nba  obter-eventos-nba  resultado-correto-nba-handler get-schedules-nba]]
-    [io.pedestal.http :as http]
-    [io.pedestal.http.route :as route]
-    [cheshire.core :as json]
-    [clj-http.client :as client])
-  (:import (java.time LocalDate)
-           (java.time.format DateTimeFormatter)))
+   [bet-project.db.Database :refer [inserir-aposta]] 
+   [bet-project.service.Financeiro :refer [depositar-handler
+                                           obter-saldo-handler]]
+   [bet-project.service.Nba :refer [get-schedules-nba obter-eventos-nba
+                                    obter-mercados-nba
+                                    resultado-correto-nba-handler]]
+   [cheshire.core :as json]
+   [clj-http.client :as client]
+   [io.pedestal.http :as http]
+   [io.pedestal.http.route :as route])
+  (:import
+   (java.time LocalDate)
+   (java.time.format DateTimeFormatter)))
 
 (def saldo-conta (atom (bet-project.db.Database/obter-saldo)))
 (def apostas (atom []))
+
+(defn salvar-apostas-no-banco []
+  (map #(inserir-aposta (:event-id %) (:quantidade %) (:esporte %) (:tipo %) (:palpite %) (:linha %)) @apostas))
+
+(defn registrar-aposta-handler [request]
+  (let [aposta (json/parse-string (slurp (:body request)) true)
+        event-id (:event-id aposta)
+        valor-aposta (:quantidade aposta)
+        esporte (:esporte aposta)
+        tipo-aposta (:tipo aposta)
+        palpite (if (= tipo-aposta "resultado-correto") (:palpite aposta) nil)
+        linha (if (= tipo-aposta "over-under") (:linha aposta) nil)]
+    (if (and (number? valor-aposta) (<= valor-aposta @saldo-conta))
+      (do
+        (swap! saldo-conta - valor-aposta)
+        (swap! apostas conj {:event-id event-id
+                             :quantidade valor-aposta
+                             :esporte esporte
+                             :tipo tipo-aposta
+                             :palpite palpite
+                             :linha linha})
+        (salvar-apostas-no-banco)
+        {:status 200
+         :body (json/generate-string {:mensagem "Aposta registrada com sucesso."
+                                      :saldo @saldo-conta})})
+      {:status 400 :body "Saldo insuficiente ou valor da aposta inválido."})))
+
+(defn obter-aposta-handler [request]
+  {:status 200
+   :body (json/generate-string @apostas)})
+
+
 (defn today-date []
   (let [formatter (DateTimeFormatter/ofPattern "yyyy-MM-dd")]
     (.format (LocalDate/now) formatter)))
@@ -79,65 +116,62 @@
 ;;        :body "Parâmetros 'event-id' e 'linha' são obrigatórios."})))
 
 
-(defn registrar-aposta-handler [request]
-   (let [aposta (json/parse-string (slurp (:body request)) true)
-         event-id (:event-id aposta)
-         valor-aposta (:quantidade aposta)
-         esporte (:esporte aposta)
-         tipo-aposta (:tipo aposta)
-         palpite (:palpite aposta)
-         linha (:linha aposta)]
-     (if (and (number? valor-aposta) (<= valor-aposta @saldo-conta))
-       (do
-         (swap! saldo-conta - valor-aposta)
-         (swap! apostas conj {:quantidade valor-aposta :tipo tipo-aposta})
-         (cond
-           (= esporte "basquete")
-           (cond
-             (= tipo-aposta "resultado-correto")
-             (if (and event-id palpite)
-               (let [response (resultado-correto-nba event-id palpite)]
-                 {:status 200 :body (json/generate-string response)})
-               {:status 400 :body "Parâmetros 'event-id' e 'palpite' são obrigatórios."})
+;; (defn registrar-aposta-handler [request]
+;;    (let [aposta (json/parse-string (slurp (:body request)) true)
+;;          event-id (:event-id aposta)
+;;          valor-aposta (:quantidade aposta)
+;;          esporte (:esporte aposta)
+;;          tipo-aposta (:tipo aposta)
+;;          palpite (:palpite aposta)
+;;          linha (:linha aposta)]
+;;      (if (and (number? valor-aposta) (<= valor-aposta @saldo-conta))
+;;        (do
+;;          (swap! saldo-conta - valor-aposta)
+;;          (swap! apostas conj {:quantidade valor-aposta :tipo tipo-aposta})
+;;          (cond
+;;            (= esporte "basquete")
+;;            (cond
+;;              (= tipo-aposta "resultado-correto")
+;;              (if (and event-id palpite)
+;;                (let [response (resultado-correto-nba event-id palpite)]
+;;                  {:status 200 :body (json/generate-string response)})
+;;                {:status 400 :body "Parâmetros 'event-id' e 'palpite' são obrigatórios."})
 
-             (= tipo-aposta "over-under")
-             (if (and event-id linha)
-               (let [response (prever-over-under event-id linha)]
-                 {:status 200 :body response})
-               {:status 400 :body "Parâmetros 'event-id' e 'linha' são obrigatórios."})
+;;              (= tipo-aposta "over-under")
+;;              (if (and event-id linha)
+;;                (let [response (prever-over-under event-id linha)]
+;;                  {:status 200 :body response})
+;;                {:status 400 :body "Parâmetros 'event-id' e 'linha' são obrigatórios."})
 
-             :else
-             {:status 400 :body "Tipo de aposta inválido."})
+;;              :else
+;;              {:status 400 :body "Tipo de aposta inválido."})
 
-           (= esporte "futebol")
-           (cond
-             (= tipo-aposta "resultado-correto")
-             (if (and event-id palpite)
-               (let [response (resultado-correto-nba event-id palpite)]
-                 {:status 200 :body (json/generate-string response)})
-               {:status 400 :body "Parâmetros 'event-id' e 'palpite' são obrigatórios."})
+;;            (= esporte "futebol")
+;;            (cond
+;;              (= tipo-aposta "resultado-correto")
+;;              (if (and event-id palpite)
+;;                (let [response (resultado-correto-nba event-id palpite)]
+;;                  {:status 200 :body (json/generate-string response)})
+;;                {:status 400 :body "Parâmetros 'event-id' e 'palpite' são obrigatórios."})
 
-             (= tipo-aposta "over-under")
-             (if (and event-id linha)
-               (let [response (prever-over-under event-id linha)]
-                 {:status 200 :body response})
-               {:status 400 :body "Parâmetros 'event-id' e 'linha' são obrigatórios."})
+;;              (= tipo-aposta "over-under")
+;;              (if (and event-id linha)
+;;                (let [response (prever-over-under event-id linha)]
+;;                  {:status 200 :body response})
+;;                {:status 400 :body "Parâmetros 'event-id' e 'linha' são obrigatórios."})
 
-             :else
-             {:status 400 :body "Tipo de aposta inválido."}))
+;;              :else
+;;              {:status 400 :body "Tipo de aposta inválido."}))
 
-         :else
-       {:status 400 :body "Esporte inválido."}))
-     {:status 400 :body "Saldo insuficiente ou valor da aposta inválido."}))
-
-
+;;          :else
+;;        {:status 400 :body "Esporte inválido."}))
+;;      {:status 400 :body "Saldo insuficiente ou valor da aposta inválido."}))
 
 
 
-
-(defn obter-aposta-handler [request]
-  {:status 200
-   :body (json/generate-string @apostas)})
+;; (defn obter-aposta-handler [request]
+;;   {:status 200
+;;    :body (json/generate-string @apostas)})
 
 (defn get-schedules-euro [request]
   (let [response (client/get "https://therundown-therundown-v1.p.rapidapi.com/sports/17/schedule"
@@ -164,7 +198,7 @@
      ["/moneyline" :get get-moneyline :route-name :moneyline]
      ["/testeOdds" :get get-open-odds :route-name :teste]
      ["/apostar" :post registrar-aposta-handler :route-name :registrar-aposta]
-     ["/qtdApostada" :get obter-aposta-handler :route-name :obter-apostas]
+     ["/aposta" :get obter-aposta-handler :route-name :obter-apostas]
      ["/eventos-nba" :get obter-eventos-nba :route-name :eventos-nba]
      ["/mercados-nba" :get obter-mercados-nba :route-name :mercados-nba]
      ["/schedules-nba" :get get-schedules-nba :route-name :get-nba-schedules]
