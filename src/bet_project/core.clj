@@ -26,8 +26,8 @@
         valor-aposta (:quantidade aposta)
         esporte (:esporte aposta)
         tipo-aposta (:tipo aposta)
-        palpite (if (= tipo-aposta "resultado-correto") (:palpite aposta) nil)
-        linha (if (= tipo-aposta "over-under") (:linha aposta) nil)]
+        palpite (get aposta :palpite nil) 
+        linha (get aposta :linha nil)]   
     (if (and (number? valor-aposta) (<= valor-aposta @saldo-conta))
       (do
         (swap! saldo-conta - valor-aposta)
@@ -42,6 +42,7 @@
          :body (json/generate-string {:mensagem "Aposta registrada com sucesso."
                                       :saldo @saldo-conta})})
       {:status 400 :body "Saldo insuficiente ou valor da aposta inválido."})))
+
 
 (defn obter-aposta-handler [request]
   {:status 200

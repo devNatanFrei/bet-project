@@ -24,12 +24,14 @@
   (jdbc/execute! db-spec
                  ["CREATE TABLE IF NOT EXISTS apostas (
                      event_id VARCHAR(255) PRIMARY KEY NOT NULL,
-                     quantidade INTEGER NOT NULL ,
+                     quantidade INTEGER NOT NULL,
                      tipo VARCHAR(255) NOT NULL,
-                     palpite VARCHAR(255) NOT NULL,
+                     esporte VARCHAR(255) NOT NULL,
+                     palpite VARCHAR(255) NULL,
+                     linha DECIMAL(15,2) NULL,
                      data_aposta TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                   )"])
-  )
+                   )"]))
+
 (create-saldo-table)
 (create-apostas-table)
 
@@ -41,6 +43,15 @@
   (jdbc/execute! db-spec ["UPDATE saldo SET valor = valor + ?" quantidade]))
 
 (defn inserir-aposta [event-id quantidade esporte tipo palpite linha]
-  (let [query "INSERT INTO apostas (event_id, quantidade, esporte, tipo, palpite, linha) VALUES (?, ?, ?, ?)"]
-    (jdbc/execute! db-spec [query event-id quantidade esporte tipo palpite linha])))
+  (let [query "INSERT INTO apostas (event_id, quantidade, esporte, tipo, palpite, linha)
+                VALUES (?, ?, ?, ?, ?, ?)"]
+    (try
+    
+      (jdbc/execute! db-spec [query event-id quantidade esporte tipo
+                              (or palpite nil)
+                              (or linha nil)])
+      (println "Aposta inserida com sucesso.")
+      (catch Exception e
+        (println "Erro ao inserir aposta:" (.getMessage e))))))
+
 
