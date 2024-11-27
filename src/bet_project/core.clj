@@ -130,8 +130,8 @@
        {:status 400 :body "Esporte inválido."}))
      {:status 400 :body "Saldo insuficiente ou valor da aposta inválido."}))
 
-          
-        
+
+
 
 
 

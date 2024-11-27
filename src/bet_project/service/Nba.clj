@@ -71,7 +71,7 @@
                              {:headers {:x-rapidapi-key "8b7aaa01f5msh14e11a5a9881536p14b4b3jsn74e4cd56608c"
                                         :x-rapidapi-host "therundown-therundown-v1.p.rapidapi.com"}
                               :query-params {:include "scores"
-                                             :affiliate_ids "1,2,3"
+                                             :affiliate_ids "2"
                                              :offset "0"}})
         dados (:body response)]
     {:status 200 :body dados}))
@@ -100,5 +100,3 @@
       (println "Erro no handler resultado-correto-nba:" (.getMessage e))
       {:status 500
        :body "Erro interno no servidor."})))
-
-
