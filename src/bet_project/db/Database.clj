@@ -25,7 +25,8 @@
                      event_id VARCHAR(255) PRIMARY KEY NOT NULL,
                      quantidade INTEGER NOT NULL ,
                      tipo VARCHAR(255) NOT NULL,
-                     palpite VARCHAR(255) NOT NULL
+                     palpite VARCHAR(255) NOT NULL,
+                     data_aposta TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                    )"])
   )
 (create-saldo-table)
