@@ -10,6 +10,8 @@
 (defn today-date []
   (let [formatter (DateTimeFormatter/ofPattern "yyyy-MM-dd")]
     (.format (LocalDate/now) formatter)))
+
+
 (defn get-schedules-nba [request]
   (let [response (client/get "https://therundown-therundown-v1.p.rapidapi.com/sports/4/schedule"
                              {:headers {:x-rapidapi-key "3e36075547msh24537dc0606651ap103e05jsna0572db9e77c"

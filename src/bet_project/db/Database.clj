@@ -43,6 +43,7 @@
   (jdbc/execute! db-spec ["UPDATE saldo SET valor = valor + ?" quantidade]))
 
 (defn inserir-aposta [event-id quantidade esporte tipo palpite linha]
+  (println "Inserindo aposta...")
   (let [query "INSERT INTO apostas (event_id, quantidade, esporte, tipo, palpite, linha)
                 VALUES (?, ?, ?, ?, ?, ?)"]
     (try

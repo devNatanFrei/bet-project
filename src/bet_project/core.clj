@@ -1,6 +1,7 @@
 (ns bet-project.core
   (:require
-   [bet-project.db.Database :refer [inserir-aposta]] 
+   [bet-project.db.Database :refer [inserir-aposta]]
+   [bet-project.service.euro :refer [get-schedules-euro]]
    [bet-project.service.Financeiro :refer [depositar-handler
                                            obter-saldo-handler]]
    [bet-project.service.Nba :refer [get-schedules-nba obter-eventos-nba
@@ -18,6 +19,7 @@
 (def apostas (atom []))
 
 (defn salvar-apostas-no-banco []
+  (println "Salvando tghhuhrehgrey8gyvgrye8")
   (map #(inserir-aposta (:event-id %) (:quantidade %) (:esporte %) (:tipo %) (:palpite %) (:linha %)) @apostas))
 
 (defn registrar-aposta-handler [request]
@@ -37,6 +39,7 @@
                              :tipo tipo-aposta
                              :palpite palpite
                              :linha linha})
+        (println "Salvando aposta no banco...")
         (salvar-apostas-no-banco)
         {:status 200
          :body (json/generate-string {:mensagem "Aposta registrada com sucesso."
@@ -174,14 +177,7 @@
 ;;   {:status 200
 ;;    :body (json/generate-string @apostas)})
 
-(defn get-schedules-euro [request]
-  (let [response (client/get "https://therundown-therundown-v1.p.rapidapi.com/sports/17/schedule"
-                             {:headers {:x-rapidapi-key "3e36075547msh24537dc0606651ap103e05jsna0572db9e77c"
-                                        :x-rapidapi-host "therundown-therundown-v1.p.rapidapi.com"}
-                              :query-params {:limit "100"}})
-        data (:body response)]
-    {:status 200
-     :body data}))
+
 
 (defn get-moneyline[request]
   (let [response (client/get "https://therundown-therundown-v1.p.rapidapi.com/lines/23f1b36907145528a3c54627323c5c30/moneyline" {:headers {:x-rapidapi-key "8b7aaa01f5msh14e11a5a9881536p14b4b3jsn74e4cd56608c"
