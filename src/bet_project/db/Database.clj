@@ -47,12 +47,13 @@
   (let [query "INSERT INTO apostas (event_id, quantidade, esporte, tipo, palpite, linha)
                 VALUES (?, ?, ?, ?, ?, ?)"]
     (try
-    
+
       (jdbc/execute! db-spec [query event-id quantidade esporte tipo
-                              (or palpite nil)
-                              (or linha nil)])
+                              (if (empty? palpite) nil palpite)
+                              (if (nil? linha) nil linha)])
       (println "Aposta inserida com sucesso.")
       (catch Exception e
         (println "Erro ao inserir aposta:" (.getMessage e))))))
+
 
 
