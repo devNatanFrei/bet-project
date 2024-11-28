@@ -35,6 +35,11 @@
 (create-saldo-table)
 (create-apostas-table)
 
+(defn obter-aposta [event-id]
+  (let [result (jdbc/query db-spec ["SELECT * FROM apostas WHERE event_id = ?" event-id])]
+    (first result)))
+
+
 (defn obter-saldo []
   (let [result (jdbc/query db-spec ["SELECT valor FROM saldo LIMIT 1"])]
     (:valor (first result))))

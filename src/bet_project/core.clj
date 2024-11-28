@@ -1,6 +1,6 @@
 (ns bet-project.core
   (:require
-   [bet-project.db.Database :refer [inserir-aposta]]
+   [bet-project.db.Database :refer [inserir-aposta obter-aposta]]
    [bet-project.service.euro :refer [get-schedules-euro]]
    [bet-project.service.Financeiro :refer [depositar-handler
                                            obter-saldo-handler]]
@@ -18,6 +18,31 @@
 (def saldo-conta (atom (bet-project.db.Database/obter-saldo)))
 (def apostas (atom []))
 
+(defn calcular-odds-e-ganhos [event-id]
+  (let [aposta (obter-aposta event-id)]
+    (if aposta
+      (let [quantidade (:quantidade aposta)
+            esporte (:esporte aposta)
+            tipo (:tipo aposta)
+           ]
+        {:status 200
+         :body {:event-id event-id
+                :quantidade quantidade
+                :esporte esporte
+                :tipo tipo
+                }})
+      {:status 404
+       :body "Aposta não encontrada"})))
+
+
+(defn calcular-odds-handler [request]
+  (let [event-id (get-in request [:query-params "event-id"])]
+    (if event-id 
+      (calcular-odds-e-ganhos event-id)
+      {:status 400
+       :body "Parâmetro 'event-id' é obrigatório."})))
+  
+
 (defn salvar-apostas-no-banco []
   (println "fdhfjdsbhvhigdfvgufdugvtdtc.")
 
@@ -29,6 +54,7 @@
                                (:linha %))
               @apostas))
   (reset! apostas [])) 
+
 
 (defn registrar-aposta-handler [request]
   (let [aposta (json/parse-string (slurp (:body request)) true)
@@ -57,6 +83,7 @@
                                       :saldo @saldo-conta})})
      
       {:status 400 :body "Saldo insuficiente ou valor da aposta inválido."})))
+
 
 
 
