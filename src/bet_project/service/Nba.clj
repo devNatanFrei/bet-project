@@ -135,23 +135,14 @@
        :body "Evento não encontrado"})))
 
 
-(defn obter-aposta-nba-handler [request]
-  (let [apostas (obter-apostas)
-        resultados (map (fn [aposta]
-                          (let [event-id (:event_id aposta)
-                                tipo (:tipo aposta)
-                                linha (:linha aposta)
-                                palpite (:palpite aposta)]
-                            (cond
-                              (= tipo "resultado-correto")
-                              (resultado-correto-nba event-id palpite)
-
-                              (= tipo "over-and-under")
-                              (prever-over-under-nba event-id linha)
-
-                              :else
-                              {:status 400
-                               :body "Tipo de aposta inválido."})))
-                        apostas)]
-    {:status 200
-     :body (json/generate-string resultados)}))
+(defn obter-aposta-nba-handler [event-id tipo linha palpite]
+  (cond
+   (= tipo "resultado-correto")
+   (resultado-correto-nba event-id palpite)
+ 
+   (= tipo "over-and-under")
+   (prever-over-under-nba event-id linha)
+ 
+   :else
+   {:status 400
+    :body "Tipo de aposta inválido."}))

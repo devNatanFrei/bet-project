@@ -94,6 +94,10 @@
       :body (json/generate-string apostas)})) 
 
 
+ (defn obter-aposta-cal [request]
+   (let [apostas (obter-apostas)]
+     {:status 200
+      :body( apostas)})) 
 
 (defn today-date []
   (let [formatter (DateTimeFormatter/ofPattern "yyyy-MM-dd")]

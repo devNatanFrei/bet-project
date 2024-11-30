@@ -108,23 +108,14 @@
       {:status 404
        :body "Evento não encontrado"})))
 
-(defn obter-aposta-futebol-handler [request]
-  (let [apostas (obter-apostas)
-        resultados (map (fn [aposta]
-                          (let [event-id (:event_id aposta)
-                                tipo (:tipo aposta)
-                                linha (:linha aposta)
-                                palpite (:palpite aposta)]
-                            (cond
-                              (= tipo "resultado-correto")
-                              (calcular-resultado-futebol event-id palpite)
+(defn obter-aposta-futebol-handler [event-id tipo linha palpite]
+  (cond
+    (= tipo "resultado-correto")
+    (calcular-resultado-futebol event-id palpite)
 
-                              (= tipo "over-and-under")
-                              (prever-over-under-futebol event-id linha)
+    (= tipo "over-and-under")
+    (prever-over-under-futebol event-id linha)
 
-                              :else
-                              {:status 400
-                               :body "Tipo de aposta inválido."})))
-                        apostas)]
-    {:status 200
-     :body (json/generate-string resultados)}))
+    :else
+    {:status 400
+     :body "Tipo de aposta inválido."}))

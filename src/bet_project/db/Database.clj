@@ -1,6 +1,8 @@
 (ns bet-project.db.Database
   (:require
-    [clojure.java.jdbc :as jdbc])
+   [bet-project.service.Futebol :refer [obter-aposta-futebol-handler]]
+   [bet-project.service.Nba :refer [obter-aposta-nba-handler]]
+   [clojure.java.jdbc :as jdbc])
   )
 
 (def db-spec
@@ -45,7 +47,27 @@
             :palpite (:palpite aposta)
             :linha (:linha aposta)
             :data_aposta (:data_aposta aposta)})
-         results))) 
+         results)))
+
+(defn obter-apostas-cal []
+  (let [results (jdbc/query db-spec ["SELECT * FROM apostas"])]
+    (map (fn [aposta]
+           (let [event-id (:event_id aposta)
+                 tipo (:tipo aposta)
+                 linha (:linha aposta)
+                 palpite (:palpite aposta)]
+             (cond
+               (= (:esporte aposta) "futebol")
+               (obter-aposta-futebol-handler event-id tipo linha palpite)
+
+               (= (:esporte aposta) "basquete")
+               (obter-aposta-nba-handler event-id tipo linha palpite)
+
+               :else
+               (assoc aposta :mensagem "Esporte não especificado ou outro"))))
+         results)))
+
+
 
 
 
