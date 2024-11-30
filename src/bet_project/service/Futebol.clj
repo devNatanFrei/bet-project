@@ -1,11 +1,10 @@
 (ns bet-project.service.Futebol
   (:require
-   [bet-project.db.Database :refer [obter-apostas]]
-   [cheshire.core :as json]
-   [clj-http.client :as client])
+    [cheshire.core :as json]
+    [clj-http.client :as client])
   (:import
-   (java.time LocalDate)
-   (java.time.format DateTimeFormatter)))
+    (java.time LocalDate)
+    (java.time.format DateTimeFormatter)))
 
 (defn today-date []
   (let [formatter (DateTimeFormatter/ofPattern "yyyy-MM-dd")]
@@ -117,15 +116,12 @@
       {:status 404
        :body "Evento não encontrado"})))
 
-
 (defn obter-aposta-futebol-handler [event-id tipo linha palpite]
   (cond
     (= tipo "resultado-correto")
     (calcular-resultado-futebol event-id palpite)
-
     (= tipo "over-and-under")
     (prever-over-under-futebol event-id linha)
-
     :else
     {:status 400
      :body "Tipo de aposta inválido."}))

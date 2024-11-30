@@ -67,9 +67,7 @@
         linha (get aposta :linha nil)]
     (if (and (number? valor-aposta) (<= valor-aposta @saldo-conta))
       (do
-
         (swap! saldo-conta - valor-aposta)
-      
         (swap! apostas conj {:event-id event-id
                              :quantidade valor-aposta
                              :esporte esporte
@@ -78,14 +76,11 @@
                              :linha linha})
         (println "padedgfuadfydggydgyfydgfygdy")
         (salvar-apostas-no-banco)
-     
         {:status 200
          :body (json/generate-string {:mensagem "Aposta registrada com sucesso."
                                       :saldo @saldo-conta})})
      
       {:status 400 :body "Saldo insuficiente ou valor da aposta inválido."})))
-
-
 
 
  (defn obter-aposta-handler [request]
@@ -216,8 +211,7 @@
      ["/eventos-nba" :get obter-eventos-nba :route-name :eventos-nba]
      ["/mercados-nba" :get obter-mercados-nba :route-name :mercados-nba]
      ["/schedules-nba" :get get-schedules-nba :route-name :get-nba-schedules]
-     ["/schedules-euro" :get get-schedules-futebol :route-name :get-euro-schedules] 
-    
+     ["/schedules-euro" :get get-schedules-futebol :route-name :get-euro-schedules]
    }))
 
 (def mapa-servico

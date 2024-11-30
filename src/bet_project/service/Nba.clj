@@ -1,11 +1,10 @@
 (ns bet-project.service.Nba
   (:require
-   [bet-project.db.Database :refer [atualizar-saldo obter-apostas obter-saldo]]
-   [cheshire.core :as json]
-   [clj-http.client :as client])
+    [cheshire.core :as json]
+    [clj-http.client :as client])
   (:import
-   (java.time LocalDate)
-   (java.time.format DateTimeFormatter)))
+    (java.time LocalDate)
+    (java.time.format DateTimeFormatter)))
 
 (defn today-date []
   (let [formatter (DateTimeFormatter/ofPattern "yyyy-MM-dd")]

@@ -10,7 +10,7 @@
    :dbname   "bet"
    :host     "localhost"
    :port     3306
-   :user     "root"
+   :user     "user"
    :password "123456"})
 (println "Sucesso na conexao")
 
@@ -30,7 +30,7 @@
                      tipo VARCHAR(255) NOT NULL,
                      esporte VARCHAR(255) NOT NULL,
                      palpite VARCHAR(255) NULL,
-                     linha DECIMAL(15,2) NULL,
+                     linha VARCHAR(255) NULL,
                      data_aposta TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                    )"]))
 
