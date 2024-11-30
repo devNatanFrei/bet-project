@@ -1,10 +1,10 @@
 (ns bet-project.core
 
   (:require
-   [bet-project.db.Database :refer [inserir-aposta obter-aposta]]
-   [bet-project.service.Futebol :refer [get-schedules-futebol obter-eventos-futebol]]
+   [bet-project.db.Database :refer [inserir-aposta  obter-apostas]]
    [bet-project.service.Financeiro :refer [depositar-handler
                                            obter-saldo-handler]]
+   [bet-project.service.Futebol :refer [get-schedules-futebol]]
    [bet-project.service.Nba :refer [get-schedules-nba obter-eventos-nba
                                     obter-mercados-nba
                                     resultado-correto-nba-handler]]
@@ -19,29 +19,29 @@
 (def saldo-conta (atom (bet-project.db.Database/obter-saldo)))
 (def apostas (atom []))
 
-(defn calcular-odds-e-ganhos [event-id]
-  (let [aposta (obter-aposta event-id)]
-    (if aposta
-      (let [quantidade (:quantidade aposta)
-            esporte (:esporte aposta)
-            tipo (:tipo aposta)
-           ]
-        {:status 200
-         :body {:event-id event-id
-                :quantidade quantidade
-                :esporte esporte
-                :tipo tipo
-                }})
-      {:status 404
-       :body "Aposta não encontrada"})))
+;; (defn calcular-odds-e-ganhos [event-id]
+;;   (let [aposta (obter-apostas event-id)]
+;;     (if aposta
+;;       (let [quantidade (:quantidade aposta)
+;;             esporte (:esporte aposta)
+;;             tipo (:tipo aposta)
+;;            ]
+;;         {:status 200
+;;          :body {:event-id event-id
+;;                 :quantidade quantidade
+;;                 :esporte esporte
+;;                 :tipo tipo
+;;                 }})
+;;       {:status 404
+;;        :body "Aposta não encontrada"})))
 
 
-(defn calcular-odds-handler [request]
-  (let [event-id (get-in request [:query-params "event-id"])]
-    (if event-id 
-      (calcular-odds-e-ganhos event-id)
-      {:status 400
-       :body "Parâmetro 'event-id' é obrigatório."})))
+;; (defn calcular-odds-handler [request]
+;;   (let [event-id (get-in request [:query-params "event-id"])]
+;;     (if event-id 
+;;       (calcular-odds-e-ganhos event-id)
+;;       {:status 400
+;;        :body "Parâmetro 'event-id' é obrigatório."})))
   
 
 (defn salvar-apostas-no-banco []
@@ -89,17 +89,9 @@
 
 
 (defn obter-aposta-handler [request]
-  (let [event-id (get-in request [:query-params "event-id"])]
-    (if event-id
-      (let [aposta (obter-aposta event-id)]
-        (if aposta
-          {:status 200
-           :body (json/generate-string aposta)} 
-          {:status 404
-           :body (json/generate-string {:mensagem "Aposta não encontrada."})}))
-      {:status 400
-       :body (json/generate-string {:mensagem "Parâmetro 'event-id' é obrigatório."})})))
-
+  (let [apostas (obter-apostas)] 
+    {:status 200
+     :body (json/generate-string apostas)})) 
 
 
 

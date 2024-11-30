@@ -35,16 +35,18 @@
 (create-saldo-table)
 (create-apostas-table)
 
-(defn obter-aposta [event-id]
-  (let [result (jdbc/query db-spec ["SELECT * FROM apostas WHERE event_id = ?" event-id])]
-    (when-let [aposta (first result)] 
-      {:event_id (:event_id aposta)
-       :quantidade (:quantidade aposta)
-       :tipo (:tipo aposta)
-       :esporte (:esporte aposta)
-       :palpite (:palpite aposta)
-       :linha (:linha aposta)
-       :data_aposta (:data_aposta aposta)})))
+(defn obter-apostas []
+  (let [results (jdbc/query db-spec ["SELECT * FROM apostas"])] 
+    (map (fn [aposta]
+           {:event_id (:event_id aposta)
+            :quantidade (:quantidade aposta)
+            :tipo (:tipo aposta)
+            :esporte (:esporte aposta)
+            :palpite (:palpite aposta)
+            :linha (:linha aposta)
+            :data_aposta (:data_aposta aposta)})
+         results))) 
+
 
 
 (defn obter-saldo []
