@@ -89,8 +89,18 @@
 
 
 (defn obter-aposta-handler [request]
-  {:status 200
-   :body (json/generate-string @apostas)})
+  (let [event-id (get-in request [:query-params "event-id"])]
+    (if event-id
+      (let [aposta (obter-aposta event-id)]
+        (if aposta
+          {:status 200
+           :body (json/generate-string aposta)} 
+          {:status 404
+           :body (json/generate-string {:mensagem "Aposta não encontrada."})}))
+      {:status 400
+       :body (json/generate-string {:mensagem "Parâmetro 'event-id' é obrigatório."})})))
+
+
 
 
 (defn today-date []
@@ -201,7 +211,7 @@
 
 
 (def rotas
-  #_{:clj-kondo/ignore [:unresolved-var]}
+  
   (route/expand-routes
    #{["/depositar" :post depositar-handler :route-name :depositar]
      ["/saldo" :get obter-saldo-handler :route-name :saldo]

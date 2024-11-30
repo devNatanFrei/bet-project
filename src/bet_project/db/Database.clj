@@ -37,7 +37,14 @@
 
 (defn obter-aposta [event-id]
   (let [result (jdbc/query db-spec ["SELECT * FROM apostas WHERE event_id = ?" event-id])]
-    (first result)))
+    (when-let [aposta (first result)] 
+      {:event_id (:event_id aposta)
+       :quantidade (:quantidade aposta)
+       :tipo (:tipo aposta)
+       :esporte (:esporte aposta)
+       :palpite (:palpite aposta)
+       :linha (:linha aposta)
+       :data_aposta (:data_aposta aposta)})))
 
 
 (defn obter-saldo []
