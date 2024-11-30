@@ -102,3 +102,33 @@
       (println "Erro no handler resultado-correto-nba:" (.getMessage e))
       {:status 500
        :body "Erro interno no servidor."})))
+
+(defn calcular-over-under-nba [score-away score-home linha]
+  (let [total-pontos (+ score-away score-home)]
+    (cond
+      (> total-pontos linha) "Over"
+      (< total-pontos linha) "Under"
+      :else "Exatamente na linha (Push)")))
+
+
+(defn prever-over-under-nba [event-id linha]
+  (let [date (today-date) response (client/get (str "https://therundown-therundown-v1.p.rapidapi.com/sports/4/events/" date)
+                                               {:headers {:x-rapidapi-key "8b7aaa01f5msh14e11a5a9881536p14b4b3jsn74e4cd56608c"
+                                                          :x-rapidapi-host "therundown-therundown-v1.p.rapidapi.com"}
+                                                :query-params {:include "scores"
+                                                               :affiliate_ids "1,2,3"
+                                                               :offset "0"}})
+        dados (json/parse-string (:body response) true)
+        eventos (:events dados)
+        evento (some #(when (= (:event_id %) event-id) %) eventos)]
+    (if evento
+      (let [score-away (:score_away (:score evento))
+            score-home (:score_home (:score evento))
+            resultado (calcular-over-under-nba score-away score-home linha)]
+        {:status 200
+         :body {:score_away score-away
+                :score_home score-home
+                :linha linha
+                :resultado resultado}})
+      {:status 404
+       :body "Evento não encontrado"})))

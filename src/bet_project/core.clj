@@ -1,7 +1,8 @@
 (ns bet-project.core
+
   (:require
    [bet-project.db.Database :refer [inserir-aposta obter-aposta]]
-   [bet-project.service.euro :refer [get-schedules-euro]]
+   [bet-project.service.Futebol :refer [get-schedules-futebol obter-eventos-futebol]]
    [bet-project.service.Financeiro :refer [depositar-handler
                                            obter-saldo-handler]]
    [bet-project.service.Nba :refer [get-schedules-nba obter-eventos-nba
@@ -118,36 +119,7 @@
 
 
 
-(defn calcular-over-under [score-away score-home linha]
-  (let [total-pontos (+ score-away score-home)]
-    (cond
-      (> total-pontos linha) "Over"
-      (< total-pontos linha) "Under"
-      :else "Exatamente na linha (Push)")))
 
-
-(defn prever-over-under [event-id linha]
-  (let [date (today-date) response (client/get (str "https://therundown-therundown-v1.p.rapidapi.com/sports/4/events/" date)
-                             {:headers {:x-rapidapi-key "8b7aaa01f5msh14e11a5a9881536p14b4b3jsn74e4cd56608c"
-                                        :x-rapidapi-host "therundown-therundown-v1.p.rapidapi.com"}
-                              :query-params {:include "scores"
-                                             :affiliate_ids "1,2,3"
-                                             :offset "0"}})
-        dados (json/parse-string (:body response) true)
-        eventos (:events dados)
-        evento (some #(when (= (:event_id %) event-id) %) eventos)]
-    (if evento
-      (let [score-away (:score_away (:score evento))
-            score-home (:score_home (:score evento))
-            resultado (calcular-over-under score-away score-home linha)]
-        {:status 200
- :body {:score_away score-away
-        :score_home score-home
-        :linha linha
-        :resultado resultado}}
-)
-      {:status 404
-       :body "Evento não encontrado"})))
 
 
 ;; (defn over-under-handler [request]
@@ -229,6 +201,7 @@
 
 
 (def rotas
+  #_{:clj-kondo/ignore [:unresolved-var]}
   (route/expand-routes
    #{["/depositar" :post depositar-handler :route-name :depositar]
      ["/saldo" :get obter-saldo-handler :route-name :saldo]
@@ -239,7 +212,7 @@
      ["/eventos-nba" :get obter-eventos-nba :route-name :eventos-nba]
      ["/mercados-nba" :get obter-mercados-nba :route-name :mercados-nba]
      ["/schedules-nba" :get get-schedules-nba :route-name :get-nba-schedules]
-     ["/schedules-euro" :get get-schedules-euro :route-name :get-euro-schedules] 
+     ["/schedules-euro" :get get-schedules-futebol :route-name :get-euro-schedules] 
     ["/resultadoCorretoNba" :post resultado-correto-nba-handler :route-name :resultado-correto]
    }))
 
