@@ -212,6 +212,7 @@
      ["/testeOdds" :get get-open-odds :route-name :teste]
      ["/apostar" :post registrar-aposta-handler :route-name :registrar-aposta]
      ["/aposta" :get obter-aposta-handler :route-name :obter-apostas]
+     ["/liquidaposta" :post obter-aposta-cal :route-name :obter-apostas-cal] 
      ["/eventos-nba" :get obter-eventos-nba :route-name :eventos-nba]
      ["/mercados-nba" :get obter-mercados-nba :route-name :mercados-nba]
      ["/schedules-nba" :get get-schedules-nba :route-name :get-nba-schedules]
