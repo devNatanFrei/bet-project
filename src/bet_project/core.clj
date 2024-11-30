@@ -88,10 +88,10 @@
 
 
 
-(defn obter-aposta-handler [request]
-  (let [apostas (obter-apostas)] 
-    {:status 200
-     :body (json/generate-string apostas)})) 
+ (defn obter-aposta-handler [request]
+   (let [apostas (obter-apostas)]
+     {:status 200
+      :body (json/generate-string apostas)})) 
 
 
 
@@ -118,9 +118,6 @@
         odds (open-odds id)]
     {:status 200
      :body odds}))
-
-
-
 
 
 
