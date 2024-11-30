@@ -7,7 +7,7 @@
    [bet-project.service.Futebol :refer [get-schedules-futebol]]
    [bet-project.service.Nba :refer [get-schedules-nba obter-eventos-nba
                                     obter-mercados-nba
-                                    resultado-correto-nba-handler]]
+                                    ]]
    [cheshire.core :as json]
    [clj-http.client :as client]
    [io.pedestal.http :as http]
@@ -217,7 +217,7 @@
      ["/mercados-nba" :get obter-mercados-nba :route-name :mercados-nba]
      ["/schedules-nba" :get get-schedules-nba :route-name :get-nba-schedules]
      ["/schedules-euro" :get get-schedules-futebol :route-name :get-euro-schedules] 
-    ["/resultadoCorretoNba" :post resultado-correto-nba-handler :route-name :resultado-correto]
+    
    }))
 
 (def mapa-servico
