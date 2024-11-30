@@ -55,28 +55,33 @@
           evento (some #(when (= (:event_id %) event-id) %) eventos)]
       (if evento
         (let [score (:score evento)
+              event-status (:event_status evento) 
               score-home (:score_home score)
               score-away (:score_away score)]
-          (if (and score-home score-away)
-            (let [resultado-real (cond
-                                   (> score-home score-away) "Casa"
-                                   (< score-home score-away) "Visitante"
-                                   :else "Empate")
-                  acertou? (= palpite resultado-real)]
-              {:status 200
-               :body {:score_home score-home
-                      :score_away score-away
-                      :resultado_real resultado-real
-                      :palpite palpite
-                      :acertou acertou?}})
-            {:status 500
-             :body "Dados de pontuação incompletos no evento."}))
+          (if (not= event-status "STATUS_FINAL")
+            {:status 400
+             :body "O evento ainda não terminou."} 
+            (if (and score-home score-away)
+              (let [resultado-real (cond
+                                     (> score-home score-away) "Casa"
+                                     (< score-home score-away) "Visitante"
+                                     :else "Empate")
+                    acertou? (= palpite resultado-real)]
+                {:status 200
+                 :body {:score_home score-home
+                        :score_away score-away
+                        :resultado_real resultado-real
+                        :palpite palpite
+                        :acertou acertou?}})
+              {:status 500
+               :body "Dados de pontuação incompletos no evento."})))
         {:status 404
          :body "Evento não encontrado"}))
     (catch Exception e
       (println "Erro ao calcular resultado do evento:" (.getMessage e))
       {:status 500
        :body "Erro ao calcular resultado do evento."})))
+
 
 (defn calcular-over-under-futebol [score-away score-home linha]
   (let [total-pontos (+ score-away score-home)]
@@ -99,14 +104,19 @@
     (if evento
       (let [score-home (:score_home (:score evento))
             score-away (:score_away (:score evento))
-            resultado (calcular-over-under-futebol score-home score-away linha)]
-        {:status 200
-         :body {:score_home score-home
-                :score_away score-away
-                :linha linha
-                :resultado resultado}})
+            event-status (:event_status evento)] 
+        (if (not= event-status "STATUS_FINAL")
+          {:status 400
+           :body "O evento ainda não terminou."} 
+          (let [resultado (calcular-over-under-futebol score-home score-away linha)]
+            {:status 200
+             :body {:score_home score-home
+                    :score_away score-away
+                    :linha linha
+                    :resultado resultado}})))
       {:status 404
        :body "Evento não encontrado"})))
+
 
 (defn obter-aposta-futebol-handler [event-id tipo linha palpite]
   (cond
