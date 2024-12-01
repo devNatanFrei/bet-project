@@ -33,19 +33,21 @@
 
 (defn resultado-correto-nba [event-id palpite]
   (try
-    (let [date (today-date) response (client/get (str "https://therundown-therundown-v1.p.rapidapi.com/sports/4/events/" date)
-                                                 {:headers {:x-rapidapi-key "8b7aaa01f5msh14e11a5a9881536p14b4b3jsn74e4cd56608c"
-                                                            :x-rapidapi-host "therundown-therundown-v1.p.rapidapi.com"}
-                                                  :query-params {:include "scores"
-                                                                 :affiliate_ids "1,2,3"
-                                                                 :offset "0"}})
+    (let [date (today-date)
+          response (client/get (str "https://therundown-therundown-v1.p.rapidapi.com/sports/4/events/" date)
+                               {:headers {:x-rapidapi-key "8b7aaa01f5msh14e11a5a9881536p14b4b3jsn74e4cd56608c"
+                                          :x-rapidapi-host "therundown-therundown-v1.p.rapidapi.com"}
+                                :query-params {:include "scores,odds"  ; Incluindo odds na consulta
+                                               :affiliate_ids "1,2,3"
+                                               :offset "0"}})
           dados (json/parse-string (:body response) true)
           eventos (:events dados)
           evento (some #(when (= (:event_id %) event-id) %) eventos)]
       (if evento
         (let [score (:score evento)
               score-away (:score_away score)
-              score-home (:score_home score)]
+              score-home (:score_home score)
+              ] 
           (if (and score-away score-home)
             (let [resultado-real (cond
                                    (> score-home score-away) "Casa"
@@ -57,7 +59,8 @@
                       :score_away score-away
                       :resultado_real resultado-real
                       :palpite palpite
-                      :acertou acertou?}})
+                      :acertou acertou?
+                    }}) 
             {:status 500
              :body "Dados de pontuação incompletos no evento."}))
         {:status 404
@@ -66,6 +69,7 @@
       (println "Erro ao buscar dados do evento:" (.getMessage e))
       {:status 500
        :body "Erro ao buscar dados do evento."})))
+
 
 (defn obter-eventos-nba [request]
   (let [date (today-date)
@@ -95,6 +99,7 @@
               event-status (:event_status evento) 
               score-away (:score_away score)
               score-home (:score_home score)]
+           (println "Evento encontrado.")
           (if (not= event-status "STATUS_FINAL")
             {:status 400
              :body "O evento ainda não terminou."} 
@@ -143,9 +148,11 @@
       (let [score-away (:score_away (:score evento))
             score-home (:score_home (:score evento))
             event-status (:event_status evento)] 
+       
         (if (not= event-status "STATUS_FINAL")
           {:status 400
            :body "O evento ainda não terminou."} 
+
           (let [resultado (calcular-over-under-nba score-away score-home linha)]
             {:status 200
              :body {:score_away score-away

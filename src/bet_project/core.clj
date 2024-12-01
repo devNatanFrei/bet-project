@@ -1,7 +1,7 @@
 (ns bet-project.core
 
   (:require
-   [bet-project.db.Database :refer [inserir-aposta  obter-apostas]]
+   [bet-project.db.Database :refer [inserir-aposta  obter-apostas obter-apostas-cal]]
    [bet-project.service.Financeiro :refer [depositar-handler
                                            obter-saldo-handler]]
    [bet-project.service.Futebol :refer [get-schedules-futebol]]
@@ -187,7 +187,7 @@
 ;;   {:status 200
 ;;    :body (json/generate-string @apostas)})
 
-
+(obter-apostas-cal)
 
 (defn get-moneyline[request]
   (let [response (client/get "https://therundown-therundown-v1.p.rapidapi.com/lines/23f1b36907145528a3c54627323c5c30/moneyline" {:headers {:x-rapidapi-key "8b7aaa01f5msh14e11a5a9881536p14b4b3jsn74e4cd56608c"
@@ -207,7 +207,7 @@
      ["/testeOdds" :get get-open-odds :route-name :teste]
      ["/apostar" :post registrar-aposta-handler :route-name :registrar-aposta]
      ["/aposta" :get obter-aposta-handler :route-name :obter-apostas]
-     ["/liquidaposta" :post obter-aposta-cal :route-name :obter-apostas-cal] 
+      ["/liquidaposta" :get obter-aposta-cal :route-name :obter-apostas-cal]
      ["/eventos-nba" :get obter-eventos-nba :route-name :eventos-nba]
      ["/mercados-nba" :get obter-mercados-nba :route-name :mercados-nba]
      ["/schedules-nba" :get get-schedules-nba :route-name :get-nba-schedules]
@@ -216,7 +216,7 @@
 
 (def mapa-servico
   {::http/routes rotas
-   ::http/port   9999
+   ::http/port   8080
    ::http/type   :jetty
    ::http/join?  false})
 

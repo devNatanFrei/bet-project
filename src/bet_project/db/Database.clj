@@ -10,7 +10,7 @@
    :dbname   "bet"
    :host     "localhost"
    :port     3306
-   :user     "user"
+   :user     "root"
    :password "123456"})
 (println "Sucesso na conexao")
 
@@ -49,27 +49,26 @@
             :data_aposta (:data_aposta aposta)})
          results)))
 
+
 (defn obter-apostas-cal []
+  (println "Processando apostas...")
   (let [results (jdbc/query db-spec ["SELECT * FROM apostas"])]
-    (map (fn [aposta]
-           (let [event-id (:event_id aposta)
-                 tipo (:tipo aposta)
-                 linha (:linha aposta)
-                 palpite (:palpite aposta)]
-             (cond
-               (= (:esporte aposta) "futebol")
-               (obter-aposta-futebol-handler event-id tipo linha palpite)
+    (dorun (map (fn [aposta]
+                  (let [event-id (:event_id aposta)
+                        tipo     (:tipo aposta)
+                        esporte  (:esporte aposta)
+                        linha    (:linha aposta)
+                        palpite  (:palpite aposta)]
+                    (cond
+                      (= esporte "futebol")
+                      (obter-aposta-futebol-handler event-id tipo linha palpite)
 
-               (= (:esporte aposta) "basquete")
-               (obter-aposta-nba-handler event-id tipo linha palpite)
+                      (= esporte "basquete")
+                      (obter-aposta-nba-handler event-id tipo linha palpite)
 
-               :else
-               (assoc aposta :mensagem "Esporte não especificado ou outro"))))
-         results)))
-
-
-
-
+                      :else
+                      (println "Esporte inválido encontrado:" esporte))))
+                results))))
 
 (defn obter-saldo []
   (let [result (jdbc/query db-spec ["SELECT valor FROM saldo LIMIT 1"])]
