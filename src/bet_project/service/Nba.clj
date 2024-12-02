@@ -32,17 +32,19 @@
 
 
 (defn resultado-correto-nba [event-id palpite]
+  (println "Buscando dados do evento:")
   (try
     (let [date (today-date)
           response (client/get (str "https://therundown-therundown-v1.p.rapidapi.com/sports/4/events/" date)
                                {:headers {:x-rapidapi-key "8b7aaa01f5msh14e11a5a9881536p14b4b3jsn74e4cd56608c"
                                           :x-rapidapi-host "therundown-therundown-v1.p.rapidapi.com"}
-                                :query-params {:include "scores,odds"  ; Incluindo odds na consulta
+                                :query-params { :include "scores"
                                                :affiliate_ids "1,2,3"
                                                :offset "0"}})
           dados (json/parse-string (:body response) true)
           eventos (:events dados)
           evento (some #(when (= (:event_id %) event-id) %) eventos)]
+      (println "Evento encontrado:")
       (if evento
         (let [score (:score evento)
               score-away (:score_away score)
@@ -82,47 +84,7 @@
         dados (:body response)]
     {:status 200 :body dados}))
 
-(defn resultado-correto-nba [event-id palpite]
-  (try
-    (let [date (today-date)
-          response (client/get (str "https://therundown-therundown-v1.p.rapidapi.com/sports/4/events/" date)
-                               {:headers {:x-rapidapi-key "8b7aaa01f5msh14e11a5a9881536p14b4b3jsn74e4cd56608c"
-                                          :x-rapidapi-host "therundown-therundown-v1.p.rapidapi.com"}
-                                :query-params {:include "scores"
-                                               :affiliate_ids "1,2,3"
-                                               :offset "0"}})
-          dados (json/parse-string (:body response) true)
-          eventos (:events dados)
-          evento (some #(when (= (:event_id %) event-id) %) eventos)]
-      (if evento
-        (let [score (:score evento)
-              event-status (:event_status evento) 
-              score-away (:score_away score)
-              score-home (:score_home score)]
-           (println "Evento encontrado.")
-          (if (not= event-status "STATUS_FINAL")
-            {:status 400
-             :body "O evento ainda não terminou."} 
-            (if (and score-away score-home)
-              (let [resultado-real (cond
-                                     (> score-home score-away) "Casa"
-                                     (< score-home score-away) "Visitante"
-                                     :else "Empate")
-                    acertou? (= palpite resultado-real)]
-                {:status 200
-                 :body {:score_home score-home
-                        :score_away score-away
-                        :resultado_real resultado-real
-                        :palpite palpite
-                        :acertou acertou?}})
-              {:status 500
-               :body "Dados de pontuação incompletos no evento."})))
-        {:status 404
-         :body "Evento não encontrado"}))
-    (catch Exception e
-      (println "Erro ao buscar dados do evento:" (.getMessage e))
-      {:status 500
-       :body "Erro ao buscar dados do evento."})))
+
 
 
 (defn calcular-over-under-nba [score-away score-home linha]
@@ -165,12 +127,22 @@
 
 (defn obter-aposta-nba-handler [event-id tipo linha palpite]
   (cond
-   (= tipo "resultado-correto")
-   (resultado-correto-nba event-id palpite)
- 
-   (= tipo "over-and-under")
-   (prever-over-under-nba event-id linha)
- 
-   :else
-   {:status 400
-    :body "Tipo de aposta inválido."}))
+
+    (= tipo "resultado-correto")
+    (let [resultado (resultado-correto-nba event-id palpite)]
+      (if (= (:status resultado) 200)
+        resultado
+        {:status 400 :body "Erro ao processar a aposta de resultado correto."}))
+
+   
+    (= tipo "over-and-under")
+    (let [resultado (prever-over-under-nba event-id linha)]
+      (if (= (:status resultado) 200)
+        resultado
+        {:status 400 :body "Erro ao processar a aposta de over/under."}))
+
+   
+    :else
+    {:status 400
+     :body "Tipo de aposta inválido."}))
+

@@ -90,6 +90,7 @@
       :else "Exatamente na linha (Push)")))
 
 (defn prever-over-under-futebol [event-id linha]
+  
   (let [date (today-date)
         response (client/get (str "https://therundown-therundown-v1.p.rapidapi.com/sports/17/events/" date)
                              {:headers {:x-rapidapi-key "8b7aaa01f5msh14e11a5a9881536p14b4b3jsn74e4cd56608c"

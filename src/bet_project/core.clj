@@ -1,9 +1,12 @@
 (ns bet-project.core
   (:require
-   [bet-project.db.Database :refer [inserir-aposta obter-apostas obter-apostas-cal]]
-   [bet-project.service.Financeiro :refer [depositar-handler obter-saldo-handler]]
+   [bet-project.db.Database :refer [inserir-aposta obter-aposta-cal
+                                    obter-apostas]]
+   [bet-project.service.Financeiro :refer [depositar-handler
+                                           obter-saldo-handler]]
    [bet-project.service.Futebol :refer [get-schedules-futebol]]
-   [bet-project.service.Nba :refer [get-schedules-nba obter-eventos-nba obter-mercados-nba]]
+   [bet-project.service.Nba :refer [get-schedules-nba obter-eventos-nba
+                                    obter-mercados-nba]]
    [cheshire.core :as json]
    [clj-http.client :as client]
    [io.pedestal.http :as http]
@@ -73,14 +76,11 @@
      :body (json/generate-string apostas)}))
 
 
-(defn obter-aposta-cal-handler [request]
-  (try
-    (obter-apostas-cal)
-    {:status 200
-     :body (json/generate-string {:mensagem "Apostas processadas com sucesso"})}
-    (catch Exception e
-      {:status 500
-       :body (json/generate-string {:erro "Erro ao processar as apostas"})})))
+
+  
+
+    
+    
 
 
 (defn open-odds [_]
@@ -202,8 +202,8 @@
      ["/moneyline" :get get-moneyline :route-name :moneyline]
      ["/testeOdds" :get get-open-odds :route-name :teste]
      ["/apostar" :post registrar-aposta-handler :route-name :registrar-aposta]
+    ["/liquidaposta" :get obter-aposta-cal :route-name :obter-apostas-cal]
      ["/aposta" :get obter-aposta-handler :route-name :obter-apostas]
-     ["/liquidaposta" :get obter-aposta-cal-handler :route-name :obter-apostas-cal]
      ["/eventos-nba" :get obter-eventos-nba :route-name :eventos-nba]
      ["/mercados-nba" :get obter-mercados-nba :route-name :mercados-nba]
      ["/schedules-nba" :get get-schedules-nba :route-name :get-nba-schedules]

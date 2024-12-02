@@ -1,8 +1,10 @@
 (ns bet-project.db.Database
   (:require
-   [bet-project.service.Futebol :refer [obter-aposta-futebol-handler]]
-   [bet-project.service.Nba :refer [obter-aposta-nba-handler]]
-   [clojure.java.jdbc :as jdbc])
+   [bet-project.service.Futebol :refer [ calcular-resultado-futebol prever-over-under-futebol]]
+   [bet-project.service.Nba :refer [ resultado-correto-nba prever-over-under-nba]]
+   [clojure.java.jdbc :as jdbc]
+   [cheshire.core :as json]
+   )
   )
 
 (def db-spec
@@ -50,25 +52,56 @@
          results)))
 
 
-(defn obter-apostas-cal []
-  (println "Processando apostas...")
-  (let [results (jdbc/query db-spec ["SELECT * FROM apostas"])]
-    (dorun (map (fn [aposta]
-                  (let [event-id (:event_id aposta)
-                        tipo     (:tipo aposta)
-                        esporte  (:esporte aposta)
-                        linha    (:linha aposta)
-                        palpite  (:palpite aposta)]
-                    (cond
-                      (= esporte "futebol")
-                      (obter-aposta-futebol-handler event-id tipo linha palpite)
+(defn obter-aposta-cal []
+  (try
+    ;; Busca as apostas diretamente do banco
+    (let [apostas (jdbc/query db-spec ["SELECT * FROM apostas"])]
+      ;; Processa cada aposta individualmente
+      (let [resultados
+            (map (fn [aposta]
+                   (let [event-id (:event_id aposta)
+                         tipo (:tipo aposta)
+                         esporte (:esporte aposta)
+                         linha (:linha aposta)
+                         palpite (:palpite aposta)]
+                     (cond
+                       ;; Processa apostas de basquete
+                       (= esporte "basquete")
+                       (cond
+                         (= tipo "resultado-correto")
+                         (let [{:keys [status body]} (resultado-correto-nba event-id palpite)]
+                           (when (= status 200) body))
 
-                      (= esporte "basquete")
-                      (obter-aposta-nba-handler event-id tipo linha palpite)
+                         (= tipo "over-and-under")
+                         (let [{:keys [status body]} (prever-over-under-nba event-id linha)]
+                           (when (= status 200) body))
 
-                      :else
-                      (println "Esporte inválido encontrado:" esporte))))
-                results))))
+                         :else nil)
+
+                       ;; Processa apostas de futebol
+                       (= esporte "futebol")
+                       (cond
+                         (= tipo "resultado-correto")
+                         (let [{:keys [status body]} (calcular-resultado-futebol event-id palpite)]
+                           (when (= status 200) body))
+
+                         (= tipo "over-and-under")
+                         (let [{:keys [status body]} (prever-over-under-futebol event-id linha)]
+                           (when (= status 200) body))
+
+                         :else nil)
+
+                       ;; Esporte inválido
+                       :else nil)))
+                 apostas)
+            respostas (remove nil? resultados)] ; Remove resultados nulos
+        {:status 200
+         :body (json/generate-string {:resultados respostas})}))
+    (catch Exception e
+      (println "Erro ao processar apostas:" (.getMessage e))
+      {:status 500
+       :body (json/generate-string {:erro "Erro ao processar as apostas"})})))
+
 
 (defn obter-saldo []
   (let [result (jdbc/query db-spec ["SELECT valor FROM saldo LIMIT 1"])]
