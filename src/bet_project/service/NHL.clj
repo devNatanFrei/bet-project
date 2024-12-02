@@ -94,7 +94,7 @@
     (cond
       (> total-pontos linha) "Over"
       (< total-pontos linha) "Under"
-      :else "Exatamente na linha (Push)")))
+      :else "Push")))
 
 (defn prever-over-under-nhl [event-id linha]
   (let [date (today-date)

@@ -1,9 +1,11 @@
 (ns bet-project.db.Database
   (:require
-   [bet-project.service.NHL :refer [calcular-resultado-nhl]]
-   [bet-project.service.Nba :refer [resultado-correto-nba prever-over-under-nba]]
-   [clojure.java.jdbc :as jdbc]
-   [cheshire.core :as json]))
+   [bet-project.service.Nba :refer [prever-over-under-nba
+                                    resultado-correto-nba]]
+   [bet-project.service.NHL :refer [calcular-resultado-nhl
+                                    prever-over-under-nhl]]
+   [cheshire.core :as json]
+   [clojure.java.jdbc :as jdbc]))
 
 (def db-spec
   {:dbtype   "mysql"
@@ -66,19 +68,7 @@
 (defn calcular-ganho [quantidade moneyline]
   (* quantidade moneyline))
 
-(defn prever-over-under [score-away score-home linha palpite]
-  (let [total-pontos (+ score-away score-home)]
-    (cond
-      (> total-pontos linha) (= palpite "Over")
-      (< total-pontos linha) (= palpite "Under")
-      :else false)))  
 
-(defn prever-over-under [score-away score-home linha palpite]
-  (let [total-pontos (+ score-away score-home)]
-    (cond
-      (> total-pontos linha) (= palpite "Over")
-      (< total-pontos linha) (= palpite "Under")
-      :else false)))  
 
 (defn obter-aposta-cal [_]
   (try
@@ -95,43 +85,43 @@
                          moneyline-home (calcular-moneyline odd-home)
                          moneyline-away (calcular-moneyline odd-away)
                          ganho (cond
-                                
+                                 ;; Resultado Correto NBA
                                  (and (= tipo "resultado-correto")
                                       (= esporte "basquete"))
                                  (let [{:keys [status body]} (resultado-correto-nba event-id palpite)]
                                    (when (= status 200)
-                                     (cond (and (=  true (:acertou body)) (> (:score_home body) (:score_away body)))
-                                       (calcular-ganho (:quantidade aposta) moneyline-home) 
-                                       (and (=  true (:acertou body)) (< (:score_home body) (:score_away body)))
-                                        (calcular-ganho (:quantidade aposta) moneyline-away)
-                                           
-                                           ))) 
+                                     (cond
+                                       (and (= true (:acertou body)) (> (:score_home body) (:score_away body)))
+                                       (calcular-ganho (:quantidade aposta) moneyline-home)
+                                       (and (= true (:acertou body)) (< (:score_home body) (:score_away body)))
+                                       (calcular-ganho (:quantidade aposta) moneyline-away))))
 
+                                
                                  (and (= tipo "resultado-correto")
                                       (= esporte "nhl"))
                                  (let [{:keys [status body]} (calcular-resultado-nhl event-id palpite)]
                                    (when (= status 200)
-                                      (cond (and (=  true (:acertou body)) (> (:score_home body) (:score_away body)))
-                                           (calcular-ganho (:quantidade aposta) moneyline-home)
-                                           (and (=  true (:acertou body)) (< (:score_home body) (:score_away body)))
-                                           (calcular-ganho (:quantidade aposta) moneyline-away))))  
+                                     (cond
+                                       (and (= true (:acertou body)) (> (:score_home body) (:score_away body)))
+                                       (calcular-ganho (:quantidade aposta) moneyline-home)
+                                       (and (= true (:acertou body)) (< (:score_home body) (:score_away body)))
+                                       (calcular-ganho (:quantidade aposta) moneyline-away))))
 
                                  
-                                 (= tipo "over-and-under")
-                                 (let [{:keys [status body]} (if (= esporte "basquete")
-                                                               (resultado-correto-nba event-id palpite)
-                                                               (calcular-resultado-nhl event-id palpite))]  ; Obter scores
+                                 (and (= tipo "over-and-under")
+                                      (= esporte "basquete"))
+                                 (let [{:keys [status body]} (prever-over-under-nba event-id linha)]
                                    (when (= status 200)
-                                     (let [score-away (:score_away body)
-                                           score-home (:score_home body)
-                                           acertou? (prever-over-under score-away score-home linha palpite)]
-                                       (if acertou?
-                                         (if (= esporte "futebol")
-                                           (calcular-ganho (:quantidade aposta) moneyline-home)
-                                           (calcular-ganho (:quantidade aposta) moneyline-away))
-                                         0)))) 
+                                     ))
 
-                                 :else 0)]  
+                                 
+                                 (and (= tipo "over-and-under")
+                                      (= esporte "nhl"))
+                                 (let [{:keys [status body]} (prever-over-under-nhl event-id linha)]
+                                   (when (= status 200)
+                                     ))
+
+                                 :else 0)]
                      {:event_id event-id
                       :tipo tipo
                       :esporte esporte
@@ -147,6 +137,7 @@
       (println "Erro ao processar apostas:" (.getMessage e))
       {:status 500
        :body (json/generate-string {:erro "Erro ao processar as apostas"})})))
+
 
 
 (defn obter-saldo []
