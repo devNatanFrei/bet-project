@@ -52,7 +52,7 @@
          results)))
 
 
-(defn obter-aposta-cal []
+(defn obter-aposta-cal [_]
   (try
     ;; Busca as apostas diretamente do banco
     (let [apostas (jdbc/query db-spec ["SELECT * FROM apostas"])]
@@ -65,7 +65,7 @@
                          linha (:linha aposta)
                          palpite (:palpite aposta)]
                      (cond
-                       ;; Processa apostas de basquete
+
                        (= esporte "basquete")
                        (cond
                          (= tipo "resultado-correto")
@@ -78,7 +78,7 @@
 
                          :else nil)
 
-                       ;; Processa apostas de futebol
+                       
                        (= esporte "futebol")
                        (cond
                          (= tipo "resultado-correto")
@@ -91,16 +91,17 @@
 
                          :else nil)
 
-                       ;; Esporte inválido
+                      
                        :else nil)))
                  apostas)
-            respostas (remove nil? resultados)] ; Remove resultados nulos
+            respostas (remove nil? resultados)] 
         {:status 200
          :body (json/generate-string {:resultados respostas})}))
     (catch Exception e
       (println "Erro ao processar apostas:" (.getMessage e))
       {:status 500
        :body (json/generate-string {:erro "Erro ao processar as apostas"})})))
+
 
 
 (defn obter-saldo []
