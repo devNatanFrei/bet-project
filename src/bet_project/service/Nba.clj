@@ -125,24 +125,24 @@
        :body "Evento não encontrado"})))
 
 
-(defn obter-aposta-nba-handler [event-id tipo linha palpite]
-  (cond
+;; (defn obter-aposta-nba-handler [event-id tipo linha palpite]
+;;   (cond
 
-    (= tipo "resultado-correto")
-    (let [resultado (resultado-correto-nba event-id palpite)]
-      (if (= (:status resultado) 200)
-        resultado
-        {:status 400 :body "Erro ao processar a aposta de resultado correto."}))
-
-   
-    (= tipo "over-and-under")
-    (let [resultado (prever-over-under-nba event-id linha)]
-      (if (= (:status resultado) 200)
-        resultado
-        {:status 400 :body "Erro ao processar a aposta de over/under."}))
+;;     (= tipo "resultado-correto")
+;;     (let [resultado (resultado-correto-nba event-id palpite)]
+;;       (if (= (:status resultado) 200)
+;;         resultado
+;;         {:status 400 :body "Erro ao processar a aposta de resultado correto."}))
 
    
-    :else
-    {:status 400
-     :body "Tipo de aposta inválido."}))
+;;     (= tipo "over-and-under")
+;;     (let [resultado (prever-over-under-nba event-id linha)]
+;;       (if (= (:status resultado) 200)
+;;         resultado
+;;         {:status 400 :body "Erro ao processar a aposta de over/under."}))
+
+   
+;;     :else
+;;     {:status 400
+;;      :body "Tipo de aposta inválido."}))
 

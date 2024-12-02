@@ -117,12 +117,12 @@
       {:status 404
        :body "Evento não encontrado"})))
 
-(defn obter-aposta-futebol-handler [event-id tipo linha palpite]
-  (cond
-    (= tipo "resultado-correto")
-    (calcular-resultado-futebol event-id palpite)
-    (= tipo "over-and-under")
-    (prever-over-under-futebol event-id linha)
-    :else
-    {:status 400
-     :body "Tipo de aposta inválido."}))
+;; (defn obter-aposta-futebol-handler [event-id tipo linha palpite]
+;;   (cond
+;;     (= tipo "resultado-correto")
+;;     (calcular-resultado-futebol event-id palpite)
+;;     (= tipo "over-and-under")
+;;     (prever-over-under-futebol event-id linha)
+;;     :else
+;;     {:status 400
+;;      :body "Tipo de aposta inválido."}))
