@@ -4,7 +4,7 @@
                                     obter-apostas]]
    [bet-project.service.Financeiro :refer [depositar-handler
                                            obter-saldo-handler]]
-   [bet-project.service.Futebol :refer [get-schedules-futebol]]
+   [bet-project.service.NHL :refer [ obter-eventos-nhl]]
    [bet-project.service.Nba :refer [get-schedules-nba obter-eventos-nba
                                     obter-mercados-nba]]
    [cheshire.core :as json]
@@ -15,24 +15,21 @@
    (java.time LocalDate)
    (java.time.format DateTimeFormatter)))
 
-
 (defn get-moneyline [request]
-  (let [response (client/get "https://therundown-therundown-v1.p.rapidapi.com/lines/23f1b36907145528a3c54627323c5c30/moneyline" {:headers {:x-rapidapi-key "8b7aaa01f5msh14e11a5a9881536p14b4b3jsn74e4cd56608c"
-                                                                                                                                           :x-rapidapi-host "therundown-therundown-v1.p.rapidapi.com"}
-                                                                                                                                 :query-params {:include "all_periods"}})
+  (let [response (client/get "https://therundown-therundown-v1.p.rapidapi.com/lines/23f1b36907145528a3c54627323c5c30/moneyline"
+                             {:headers {:x-rapidapi-key "8b7aaa01f5msh14e11a5a9881536p14b4b3jsn74e4cd56608c"
+                                        :x-rapidapi-host "therundown-therundown-v1.p.rapidapi.com"}
+                              :query-params {:include "all_periods"}})
         data (:body response)]
     {:status 200
      :body data}))
 
-
 (def saldo-conta (atom (bet-project.db.Database/obter-saldo)))
 (def apostas (atom []))
-
 
 (defn today-date []
   (let [formatter (DateTimeFormatter/ofPattern "yyyy-MM-dd")]
     (.format (LocalDate/now) formatter)))
-
 
 (defn salvar-apostas-no-banco []
   (dorun
@@ -41,10 +38,11 @@
                          (:esporte %)
                          (:tipo %)
                          (:palpite %)
-                         (:linha %))
+                         (:linha %)
+                         (:odd_home %)
+                         (:odd_away %))
         @apostas))
   (reset! apostas []))
-
 
 (defn registrar-aposta-handler [request]
   (let [aposta (json/parse-string (slurp (:body request)) true)
@@ -53,7 +51,9 @@
         esporte (:esporte aposta)
         tipo-aposta (:tipo aposta)
         palpite (get aposta :palpite nil)
-        linha (get aposta :linha nil)]
+        linha (get aposta :linha nil)
+        odd-home (get aposta :odd_home nil)  
+        odd-away (get aposta :odd_away nil)]  
     (if (and (number? valor-aposta) (<= valor-aposta @saldo-conta))
       (do
         (swap! saldo-conta - valor-aposta)
@@ -62,22 +62,19 @@
                              :esporte esporte
                              :tipo tipo-aposta
                              :palpite palpite
-                             :linha linha})
+                             :linha linha
+                             :odd_home odd-home       
+                             :odd_away odd-away})     
         (salvar-apostas-no-banco)
         {:status 200
          :body (json/generate-string {:mensagem "Aposta registrada com sucesso."
                                       :saldo @saldo-conta})})
       {:status 400 :body "Saldo insuficiente ou valor da aposta inválido."})))
 
-
 (defn obter-aposta-handler [request]
   (let [apostas (obter-apostas)]
     {:status 200
      :body (json/generate-string apostas)}))
-
-
-
-  
 
 (defn open-odds [_]
   (try
@@ -96,11 +93,6 @@
         odds (open-odds id)]
     {:status 200 :body odds}))
 
-
-
-
-
-
 (def rotas
   (route/expand-routes
    #{["/depositar" :post depositar-handler :route-name :depositar]
@@ -108,16 +100,18 @@
      ["/moneyline" :get get-moneyline :route-name :moneyline]
      ["/testeOdds" :get get-open-odds :route-name :teste]
      ["/apostar" :post registrar-aposta-handler :route-name :registrar-aposta]
-    ["/liquidaposta" :get obter-aposta-cal :route-name :obter-apostas-cal]
+     ["/liquidaposta" :get obter-aposta-cal :route-name :obter-apostas-cal]
      ["/aposta" :get obter-aposta-handler :route-name :obter-apostas]
      ["/eventos-nba" :get obter-eventos-nba :route-name :eventos-nba]
      ["/mercados-nba" :get obter-mercados-nba :route-name :mercados-nba]
      ["/schedules-nba" :get get-schedules-nba :route-name :get-nba-schedules]
-     ["/schedules-euro" :get get-schedules-futebol :route-name :get-euro-schedules]}))
+    
+     ["/events-nhl" :get obter-eventos-nhl :route-name :events-fut]
+     }))
 
 (def mapa-servico
   {::http/routes rotas
-   ::http/port   8080
+   ::http/port   6666
    ::http/type   :jetty
    ::http/join?  false})
 
@@ -155,37 +149,44 @@
           (println "Depósito realizado com sucesso!")
           (println "Saldo atualizado:" (:saldo (json/parse-string (:body response) true)))))
 
+
       (= opcao "3") (println "Voltando ao menu principal...")
       :else (println "Opção invalida!")))
-    (menu-principal))
-  
-  
-  (defn fazer-aposta []
-    (println "\n====== Fazer Aposta ======")
-    (print "Digite o ID do evento: ")
-    (let [event-id (read-line)]
-      (print "Digite o valor da aposta: ")
-      (let [quantidade (Double/parseDouble (read-line))
-            esporte (do (print "Esporte (futebol/basquete): ") (read-line))
-            tipo (do (print "Tipo de aposta (resultado-correto/over-and-under): ") (read-line))
-            palpite (if (= tipo "resultado-correto")
-                      (do (print "Digite o palpite (Casa/Visitante/Empate): ") (read-line))
-                      nil)
-            linha (if (= tipo "over-and-under")
-                    (do (print "Digite a linha do over/under: ") (Double/parseDouble (read-line)))
-                    nil)
-            response (client/post "http://localhost:8080/apostar"
-                                  {:body (json/generate-string
-                                          {:event-id event-id
-                                           :quantidade quantidade
-                                           :esporte esporte
-                                           :tipo tipo
-                                           :palpite palpite
-                                           :linha linha})
-                                   :headers {"Content-Type" "application/json"}})]
-        (println "Resultado:" (:mensagem (json/parse-string (:body response) true)))))
   (menu-principal))
 
+(defn fazer-aposta []
+  (println "\n====== Fazer Aposta ======")
+  (print "Digite o ID do evento: ")
+  (let [event-id (read-line)]
+    (print "Digite o valor da aposta: ")
+    (let [quantidade (Double/parseDouble (read-line))
+          esporte (do (print "Esporte (futebol/basquete): ") (read-line))
+          tipo (do (print "Tipo de aposta (resultado-correto/over-and-under): ") (read-line))
+          palpite (if (= tipo "resultado-correto")
+                    (do (print "Digite o palpite (Casa/Visitante/Empate): ") (read-line))
+                    nil)
+          linha (if (= tipo "over-and-under")
+                  (do (print "Digite a linha do over/under: ") (Double/parseDouble (read-line)))
+                  nil)
+          odd-home (if (= tipo "over-and-under")
+                     (do (print "Digite a odd home: ") (Double/parseDouble (read-line)))
+                     nil)
+          odd-away (if (= tipo "over-and-under")
+                     (do (print "Digite a odd away: ") (Double/parseDouble (read-line)))
+                     nil)
+          response (client/post "http://localhost:8080/apostar"
+                                {:body (json/generate-string
+                                        {:event-id event-id
+                                         :quantidade quantidade
+                                         :esporte esporte
+                                         :tipo tipo
+                                         :palpite palpite
+                                         :linha linha
+                                         :odd_home odd-home      
+                                         :odd_away odd-away})   
+                                 :headers {"Content-Type" "application/json"}})]
+      (println "Resultado:" (:mensagem (json/parse-string (:body response) true)))))
+  (menu-principal))
 
 (defn consultar-resultados []
   (println "\n====== Consultar Resultados ======")
@@ -202,9 +203,6 @@
           apostas)))
   (menu-principal))
 
-
-
-
 (defn menu-principal []
   (mostrar-menu)
   (let [opcao (read-line)]
@@ -217,6 +215,4 @@
 
 (defn -main []
   (http/start (http/create-server mapa-servico))
-  (menu-principal)
-  )
-  
+  (menu-principal))

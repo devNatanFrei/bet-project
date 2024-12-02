@@ -1,25 +1,24 @@
-(ns bet-project.service.Futebol
+(ns bet-project.service.NHL
   (:require
-    [cheshire.core :as json]
-    [clj-http.client :as client])
+   [cheshire.core :as json]
+   [clj-http.client :as client])
   (:import
-    (java.time LocalDate)
-    (java.time.format DateTimeFormatter)))
+   (java.time LocalDate)
+   (java.time.format DateTimeFormatter)))
 
 (defn today-date []
   (let [formatter (DateTimeFormatter/ofPattern "yyyy-MM-dd")]
     (.format (LocalDate/now) formatter)))
 
 (defn calculate-moneyline [moneyline-value]
-  (if (= moneyline-value 0.0001) 
+  (if (= moneyline-value 0.0001)
     0
     (let [value (int moneyline-value)]
       (cond
         (< value 0) (inc (double (abs (/ 100 value))))
         (> value 0) (double (/ value 100))))))
 
-
-(defn get-schedules-futebol [request]
+(defn get-schedules-nhl [request]
   (let [response (client/get "https://therundown-therundown-v1.p.rapidapi.com/sports/17/schedule"
                              {:headers {:x-rapidapi-key "3e36075547msh24537dc0606651ap103e05jsna0572db9e77c"
                                         :x-rapidapi-host "therundown-therundown-v1.p.rapidapi.com"}
@@ -28,9 +27,9 @@
     {:status 200
      :body data}))
 
-(defn obter-mercados-futebol [request]
+(defn obter-mercados-nhl [request]
   (let [date (today-date)
-        response (client/get (str "https://therundown-therundown-v1.p.rapidapi.com/sports/17/openers/" date)
+        response (client/get (str "https://therundown-therundown-v1.p.rapidapi.com/sports/6/openers/" date)
                              {:headers {:x-rapidapi-key "8b7aaa01f5msh14e11a5a9881536p14b4b3jsn74e4cd56608c"
                                         :x-rapidapi-host "therundown-therundown-v1.p.rapidapi.com"}
                               :query-params {:offset ""
@@ -38,9 +37,9 @@
         dados (:body response)]
     {:status 200 :body dados}))
 
-(defn obter-eventos-futebol [request]
+(defn obter-eventos-nhl [request]
   (let [date (today-date)
-        response (client/get (str "https://therundown-therundown-v1.p.rapidapi.com/sports/17/events/" date)
+        response (client/get (str "https://therundown-therundown-v1.p.rapidapi.com/sports/6/events/" date)
                              {:headers {:x-rapidapi-key "8b7aaa01f5msh14e11a5a9881536p14b4b3jsn74e4cd56608c"
                                         :x-rapidapi-host "therundown-therundown-v1.p.rapidapi.com"}
                               :query-params {:include "scores"
@@ -49,10 +48,10 @@
         dados (:body response)]
     {:status 200 :body dados}))
 
-(defn calcular-resultado-futebol [event-id palpite]
+(defn calcular-resultado-nhl [event-id palpite]
   (try
     (let [date (today-date)
-          response (client/get (str "https://therundown-therundown-v1.p.rapidapi.com/sports/17/events/" date)
+          response (client/get (str "https://therundown-therundown-v1.p.rapidapi.com/sports/6/events/2024-12-03")
                                {:headers {:x-rapidapi-key "8b7aaa01f5msh14e11a5a9881536p14b4b3jsn74e4cd56608c"
                                           :x-rapidapi-host "therundown-therundown-v1.p.rapidapi.com"}
                                 :query-params {:include "scores,lines"
@@ -63,9 +62,6 @@
           evento (some #(when (= (:event_id %) event-id) %) eventos)]
       (if evento
         (let [score (:score evento)
-              lines (get-in evento [:lines "2" :moneyline])
-              moneyline-away (calculate-moneyline (:moneyline_away lines))
-              moneyline-home (calculate-moneyline (:moneyline_home lines))
               score-away (:score_away score)
               score-home (:score_home score)
               event-status (:event_status evento)]
@@ -83,9 +79,7 @@
                         :score_away score-away
                         :resultado_real resultado-real
                         :palpite palpite
-                        :acertou acertou?
-                        :moneyline_home moneyline-home
-                        :moneyline_away moneyline-away}})
+                        :acertou acertou?}})
               {:status 500
                :body "Dados de pontuação incompletos no evento."})))
         {:status 404
@@ -95,18 +89,16 @@
       {:status 500
        :body "Erro ao calcular resultado do evento."})))
 
-
-
-(defn calcular-over-under-futebol [score-away score-home linha]
+(defn calcular-over-under-nhl [score-away score-home linha]
   (let [total-pontos (+ score-away score-home)]
     (cond
       (> total-pontos linha) "Over"
       (< total-pontos linha) "Under"
       :else "Exatamente na linha (Push)")))
 
-(defn prever-over-under-futebol [event-id linha]
+(defn prever-over-under-nhl [event-id linha]
   (let [date (today-date)
-        response (client/get (str "https://therundown-therundown-v1.p.rapidapi.com/sports/17/events/" date)
+        response (client/get (str "https://therundown-therundown-v1.p.rapidapi.com/sports/6/events/2024-12-03")
                              {:headers {:x-rapidapi-key "8b7aaa01f5msh14e11a5a9881536p14b4b3jsn74e4cd56608c"
                                         :x-rapidapi-host "therundown-therundown-v1.p.rapidapi.com"}
                               :query-params {:include "scores,lines"
@@ -118,25 +110,20 @@
     (if evento
       (let [score-away (:score_away (:score evento))
             score-home (:score_home (:score evento))
-            lines (get-in evento [:lines "2" :moneyline])
-            moneyline-away (calculate-moneyline (:moneyline_away lines))
-            moneyline-home (calculate-moneyline (:moneyline_home lines))
             event-status (:event_status evento)]
         (if (not= event-status "STATUS_FINAL")
           {:status 400
            :body "O evento ainda não terminou."}
-          (let [resultado (calcular-over-under-futebol score-away score-home linha)]
+          (let [resultado (calcular-over-under-nhl score-away score-home linha)]
             {:status 200
              :body {:score_away score-away
                     :score_home score-home
                     :linha linha
-                    :resultado resultado
-                    :moneyline_home moneyline-home
-                    :moneyline_away moneyline-away}})))
+                    :resultado resultado}})))
       {:status 404
        :body "Evento não encontrado"})))
 
-
+;; Função comentada para obter a aposta
 ;; (defn obter-aposta-futebol-handler [event-id tipo linha palpite]
 ;;   (cond
 ;;     (= tipo "resultado-correto")
