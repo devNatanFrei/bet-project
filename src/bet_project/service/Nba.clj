@@ -10,6 +10,14 @@
   (let [formatter (DateTimeFormatter/ofPattern "yyyy-MM-dd")]
     (.format (LocalDate/now) formatter)))
 
+(defn calculate-moneyline [moneyline-value]
+  (if (= moneyline-value 0.0001) 
+    0
+    (let [value (int moneyline-value)]
+      (cond
+        (< value 0) (inc (double (abs (/ 100 value))))
+        (> value 0) (double (/ value 100))))))
+
 
 (defn get-schedules-nba [request]
   (let [response (client/get "https://therundown-therundown-v1.p.rapidapi.com/sports/4/schedule"
@@ -32,45 +40,52 @@
 
 
 (defn resultado-correto-nba [event-id palpite]
-  (println "Buscando dados do evento:")
   (try
     (let [date (today-date)
           response (client/get (str "https://therundown-therundown-v1.p.rapidapi.com/sports/4/events/" date)
                                {:headers {:x-rapidapi-key "8b7aaa01f5msh14e11a5a9881536p14b4b3jsn74e4cd56608c"
                                           :x-rapidapi-host "therundown-therundown-v1.p.rapidapi.com"}
-                                :query-params { :include "scores"
-                                               :affiliate_ids "1,2,3"
+                                :query-params {:include "scores,lines"
+                                               :affiliate_ids "2"
                                                :offset "0"}})
-          dados (json/parse-string (:body response) true)
-          eventos (:events dados)
-          evento (some #(when (= (:event_id %) event-id) %) eventos)]
-      (println "Evento encontrado:")
-      (if evento
-        (let [score (:score evento)
-              score-away (:score_away score)
-              score-home (:score_home score)
-              ] 
-          (if (and score-away score-home)
-            (let [resultado-real (cond
-                                   (> score-home score-away) "Casa"
-                                   (< score-home score-away) "Visitante"
-                                   :else "Empate")
-                  acertou? (= palpite resultado-real)]
-              {:status 200
-               :body {:score_home score-home
-                      :score_away score-away
-                      :resultado_real resultado-real
-                      :palpite palpite
-                      :acertou acertou?
-                    }}) 
-            {:status 500
-             :body "Dados de pontuação incompletos no evento."}))
-        {:status 404
-         :body "Evento não encontrado"}))
+          dados (json/parse-string (:body response) true)]
+   
+      (if-let [eventos (:events dados)]
+        (let [evento (some #(when (= (:event_id %) event-id) %) eventos)]
+          (if evento
+            (let [score (:score evento)
+                  event-status (:event_status score)
+                  lines (get-in evento [:lines "2" :moneyline])
+                  moneyline-away (calculate-moneyline (:moneyline_away lines))
+                  moneyline-home (calculate-moneyline (:moneyline_home lines))
+                  score-away (:score_away score)
+                  score-home (:score_home score)]
+             
+              (if (not= event-status "STATUS_FINAL")
+                {:status 400 :body "O evento ainda não terminou."}
+                (if (and score-away score-home)
+                  {:status 200
+                   :body {:score_home score-home
+                          :score_away score-away
+                          :resultado_real (cond
+                                            (> score-home score-away) "Casa"
+                                            (< score-home score-away) "Visitante"
+                                            :else "Empate")
+                          :palpite palpite
+                          :acertou (= palpite (cond
+                                                (> score-home score-away) "Casa"
+                                                (< score-home score-away) "Visitante"
+                                                :else "Empate"))
+                          :moneyline_home moneyline-home
+                          :moneyline_away moneyline-away}}
+                  {:status 500 :body "Dados de pontuação incompletos no evento."})))
+            {:status 404 :body "Evento não encontrado"}))
+        {:status 500 :body "Nenhum dado de eventos encontrado na resposta da API"}))
     (catch Exception e
       (println "Erro ao buscar dados do evento:" (.getMessage e))
-      {:status 500
-       :body "Erro ao buscar dados do evento."})))
+      {:status 500 :body "Erro ao buscar dados do evento."})))
+
+
 
 
 (defn obter-eventos-nba [request]
@@ -100,8 +115,8 @@
         response (client/get (str "https://therundown-therundown-v1.p.rapidapi.com/sports/4/events/" date)
                              {:headers {:x-rapidapi-key "8b7aaa01f5msh14e11a5a9881536p14b4b3jsn74e4cd56608c"
                                         :x-rapidapi-host "therundown-therundown-v1.p.rapidapi.com"}
-                              :query-params {:include "scores"
-                                             :affiliate_ids "1,2,3"
+                              :query-params {:include "scores,lines"
+                                             :affiliate_ids "2"
                                              :offset "0"}})
         dados (json/parse-string (:body response) true)
         eventos (:events dados)
@@ -109,20 +124,21 @@
     (if evento
       (let [score-away (:score_away (:score evento))
             score-home (:score_home (:score evento))
-            event-status (:event_status evento)] 
-       
-        (if (not= event-status "STATUS_FINAL")
-          {:status 400
-           :body "O evento ainda não terminou."} 
-
-          (let [resultado (calcular-over-under-nba score-away score-home linha)]
-            {:status 200
-             :body {:score_away score-away
-                    :score_home score-home
-                    :linha linha
-                    :resultado resultado}})))
+            lines (get-in evento [:lines "2" :moneyline])
+            moneyline-away (calculate-moneyline (:moneyline_away lines))
+            moneyline-home (calculate-moneyline (:moneyline_home lines))]
+        (let [resultado (calcular-over-under-nba score-away score-home linha)]
+          {:status 200
+           :body {:score_away score-away
+                  :score_home score-home
+                  :linha linha
+                  :resultado resultado
+                  :moneyline_home moneyline-home
+                  :moneyline_away moneyline-away}}))
       {:status 404
-       :body "Evento não encontrado"})))
+       :body "Evento não encontrado"})
+      {:status 404
+       :body "Evento não encontrado"}))
 
 
 ;; (defn obter-aposta-nba-handler [event-id tipo linha palpite]

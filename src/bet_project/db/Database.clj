@@ -54,9 +54,9 @@
 
 (defn obter-aposta-cal [_]
   (try
-    ;; Busca as apostas diretamente do banco
+  
     (let [apostas (jdbc/query db-spec ["SELECT * FROM apostas"])]
-      ;; Processa cada aposta individualmente
+     
       (let [resultados
             (map (fn [aposta]
                    (let [event-id (:event_id aposta)
@@ -71,7 +71,7 @@
                          (= tipo "resultado-correto")
                          (let [{:keys [status body]} (resultado-correto-nba event-id palpite)]
                            (when (= status 200) body))
-
+ 
                          (= tipo "over-and-under")
                          (let [{:keys [status body]} (prever-over-under-nba event-id linha)]
                            (when (= status 200) body))
