@@ -89,14 +89,14 @@
       {:status 500
        :body "Erro ao calcular resultado do evento."})))
 
-(defn calcular-over-under-nhl [score-away score-home linha]
-  (let [total-pontos (+ score-away score-home)]
+(defn calcular-over-under-nhl [score-away score-home linha] 
+  (let [total-pontos (+ score-away score-home)]  
     (cond
-      (> total-pontos linha) "Over"
-      (< total-pontos linha) "Under"
-      :else "Push")))
+      (> total-pontos linha) "Over"   
+      (< total-pontos linha) "Under"  
+      :else "Push")))                 
 
-(defn prever-over-under-nhl [event-id]
+(defn prever-over-under-nhl [event-id palpite]
   (let [date (today-date)
         response (client/get (str "https://therundown-therundown-v1.p.rapidapi.com/sports/6/events/" date)
                              {:headers {:x-rapidapi-key "8b7aaa01f5msh14e11a5a9881536p14b4b3jsn74e4cd56608c"
@@ -108,24 +108,29 @@
         eventos (:events dados)
         evento (some #(when (= (:event_id %) event-id) %) eventos)]
     (if evento
-      (let [score-away (:score_away (:score evento)) 
+      (let [score-away (:score_away (:score evento))
             score-home (:score_home (:score evento))
             event-status (:event_status evento)
-            linha (get-in evento [:lines "2" :total :total_over])]  
+            linha-over (get-in evento [:lines "2" :total :total_over])]
         (if (not= event-status "STATUS_FINAL")
           {:status 400
            :body "O evento ainda não terminou."}
-          (if linha
-            (let [resultado (calcular-over-under-nhl score-away score-home linha)]
+          (if linha-over
+            (let [resultado (calcular-over-under-nhl score-away score-home linha-over)
+                  acertou? (= resultado palpite)] 
               {:status 200
                :body {:score_away score-away
                       :score_home score-home
-                      :linha linha
-                      :resultado resultado}})
+                      :linha_over linha-over
+                      :resultado resultado
+                      :palpite palpite
+                      :acertou acertou?}})
             {:status 500
              :body "Linha de over/under não encontrada na API."})))
       {:status 404
        :body "Evento não encontrado"})))
+
+
 
 ;; Função comentada para obter a aposta
 ;; (defn obter-aposta-futebol-handler [event-id tipo linha palpite]

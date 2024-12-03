@@ -5,7 +5,8 @@
    [bet-project.service.NHL :refer [calcular-resultado-nhl
                                     prever-over-under-nhl]]
    [cheshire.core :as json]
-   [clojure.java.jdbc :as jdbc]))
+   [clojure.java.jdbc :as jdbc]
+   [clojure.string :as string]))
 
 (def db-spec
   {:dbtype   "mysql"
@@ -63,6 +64,8 @@
         (< value 0) (inc (Math/abs (/ 100 value)))
         (> value 0) (/ value 100)))))
 
+
+
 (defn calcular-ganho [quantidade moneyline]
   (* quantidade moneyline))
 
@@ -102,7 +105,7 @@
 
                                          
                                          (and (= tipo "over-and-under") (= esporte "basquete"))
-                                         (let [{:keys [status body]} (prever-over-under-nba event-id)]
+                                         (let [{:keys [status body]} (prever-over-under-nba event-id palpite)]
                                            (when (= status 200)
                                              (cond
                                                (= (:resultado body) "Over")
@@ -112,7 +115,7 @@
 
                                    
                                          (and (= tipo "over-and-under") (= esporte "nhl"))
-                                         (let [{:keys [status body]} (prever-over-under-nhl event-id)]
+                                         (let [{:keys [status body]} (prever-over-under-nhl event-id palpite)]
                                            (when (= status 200)
                                              (cond
                                                (= (:resultado body) "Over")
@@ -160,7 +163,7 @@
   (let [query "INSERT INTO apostas (event_id, quantidade, esporte, tipo, palpite, odd_home, odd_away)
                 VALUES (?, ?, ?, ?, ?, ?, ?)"]
     (try
-      (let [palpite-final (when (and palpite (not (clojure.string/blank? palpite))) palpite)
+      (let [palpite-final (when (and palpite (not (string/blank? palpite))) palpite)
             odd-home-final (or odd-home 0.0)
             odd-away-final (or odd-away 0.0)]
         (jdbc/execute! db-spec [query event-id quantidade esporte tipo palpite-final odd-home-final odd-away-final])
