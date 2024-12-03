@@ -18,7 +18,8 @@
                          (:tipo %)
                          (:palpite %)
                          (:odd_home %)
-                         (:odd_away %))
+                         (:odd_away %)
+                         (:total_over %))
         @apostas))
   (reset! apostas []))
 

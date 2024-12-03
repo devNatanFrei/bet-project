@@ -29,7 +29,7 @@
 
 (defn obter-mercados-nhl [request]
   (let [date (today-date)
-        response (client/get (str "https://therundown-therundown-v1.p.rapidapi.com/sports/6/openers/" date)
+        response (client/get (str "https://therundown-therundown-v1.p.rapidapi.com/sports/6/openers/2024-12-04" )
                              {:headers {:x-rapidapi-key "8b7aaa01f5msh14e11a5a9881536p14b4b3jsn74e4cd56608c"
                                         :x-rapidapi-host "therundown-therundown-v1.p.rapidapi.com"}
                               :query-params {:offset ""
@@ -39,7 +39,7 @@
 
 (defn obter-eventos-nhl [request]
   (let [date (today-date)
-        response (client/get (str "https://therundown-therundown-v1.p.rapidapi.com/sports/6/events/" date)
+        response (client/get (str "https://therundown-therundown-v1.p.rapidapi.com/sports/6/events/2024-12-04")
                              {:headers {:x-rapidapi-key "8b7aaa01f5msh14e11a5a9881536p14b4b3jsn74e4cd56608c"
                                         :x-rapidapi-host "therundown-therundown-v1.p.rapidapi.com"}
                               :query-params {:include "scores"
@@ -51,7 +51,7 @@
 (defn calcular-resultado-nhl [event-id palpite]
   (try
     (let [date (today-date)
-          response (client/get (str "https://therundown-therundown-v1.p.rapidapi.com/sports/6/events/2024-12-03")
+          response (client/get (str "https://therundown-therundown-v1.p.rapidapi.com/sports/6/events/2024-12-04")
                                {:headers {:x-rapidapi-key "8b7aaa01f5msh14e11a5a9881536p14b4b3jsn74e4cd56608c"
                                           :x-rapidapi-host "therundown-therundown-v1.p.rapidapi.com"}
                                 :query-params {:include "scores,lines"
@@ -98,7 +98,7 @@
 
 (defn prever-over-under-nhl [event-id palpite]
   (let [date (today-date)
-        response (client/get (str "https://therundown-therundown-v1.p.rapidapi.com/sports/6/events/" date)
+        response (client/get (str "https://therundown-therundown-v1.p.rapidapi.com/sports/6/events/2024-12-04")
                              {:headers {:x-rapidapi-key "8b7aaa01f5msh14e11a5a9881536p14b4b3jsn74e4cd56608c"
                                         :x-rapidapi-host "therundown-therundown-v1.p.rapidapi.com"}
                               :query-params {:include "scores,lines"

@@ -80,7 +80,7 @@
 
 (defn obter-eventos-nba [request]
   (let [date (today-date)
-        response (client/get (str "https://therundown-therundown-v1.p.rapidapi.com/sports/4/events/" date)
+        response (client/get (str "https://therundown-therundown-v1.p.rapidapi.com/sports/4/events/2024-12-04")
                              {:headers {:x-rapidapi-key "8b7aaa01f5msh14e11a5a9881536p14b4b3jsn74e4cd56608c"
                                         :x-rapidapi-host "therundown-therundown-v1.p.rapidapi.com"}
                               :query-params {:include "scores"
@@ -100,7 +100,7 @@
 (defn prever-over-under-nba [event-id palpite]
 
   (let [date (today-date)
-        response (client/get (str "https://therundown-therundown-v1.p.rapidapi.com/sports/4/events/" date)
+        response (client/get (str "https://therundown-therundown-v1.p.rapidapi.com/sports/4/events/2024-12-04" )
                              {:headers {:x-rapidapi-key "8b7aaa01f5msh14e11a5a9881536p14b4b3jsn74e4cd56608c"
                                         :x-rapidapi-host "therundown-therundown-v1.p.rapidapi.com"}
                               :query-params {:include "scores,lines"
