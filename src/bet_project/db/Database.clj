@@ -77,8 +77,7 @@
             (map (fn [aposta]
                    (let [event-id (:event_id aposta)
                          tipo (:tipo aposta)
-                         esporte (:esporte aposta)
-                         linha (:linha aposta)
+                         esporte (:esporte aposta) 
                          palpite (:palpite aposta)
                          odd-home (:odd_home aposta)
                          odd-away (:odd_away aposta)
@@ -110,14 +109,14 @@
                                  
                                  (and (= tipo "over-and-under")
                                       (= esporte "basquete"))
-                                 (let [{:keys [status body]} (prever-over-under-nba event-id linha)]
+                                 (let [{:keys [status body]} (prever-over-under-nba event-id )]
                                    (when (= status 200)
                                      ))
 
                                  
                                  (and (= tipo "over-and-under")
                                       (= esporte "nhl"))
-                                 (let [{:keys [status body]} (prever-over-under-nhl event-id linha)]
+                                 (let [{:keys [status body]} (prever-over-under-nhl event-id )]
                                    (when (= status 200)
                                      ))
 
@@ -149,8 +148,8 @@
 
 (defn inserir-aposta [event-id quantidade esporte tipo palpite linha odd_home odd_away]
   (println "Inserindo aposta...")
-  (let [query "INSERT INTO apostas (event_id, quantidade, esporte, tipo, palpite, linha, odd_home, odd_away)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)"]
+  (let [query "INSERT INTO apostas (event_id, quantidade, esporte, tipo, palpite, odd_home, odd_away)
+                VALUES (?, ?, ?, ?, ?, ?, ?, )"]
     (try
       (jdbc/execute! db-spec [query event-id quantidade esporte tipo
                               (if (empty? palpite) nil palpite)
