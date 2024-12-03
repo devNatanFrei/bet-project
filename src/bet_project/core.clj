@@ -109,7 +109,7 @@
 
 (def mapa-servico
   {::http/routes rotas
-   ::http/port   9999
+   ::http/port   8080
    ::http/type   :jetty
    ::http/join?  false})
 
@@ -170,7 +170,7 @@
           odd-away (if (= tipo "over-and-under")
                      (do (print "Digite a odd away: ") (Double/parseDouble (read-line)))
                      nil)
-          response (client/post "http://localhost:9999/apostar"
+          response (client/post "http://localhost:8080/apostar"
                                 {:body (json/generate-string
                                         {:event-id event-id
                                          :quantidade quantidade
@@ -186,7 +186,7 @@
 
 (defn consultar-resultados []
   (println "\n====== Consultar Resultados ======")
-  (let [response (client/get "http://localhost:9999/aposta")
+  (let [response (client/get "http://localhost:8080/aposta")
         apostas (json/parse-string (:body response) true)]
     (dorun
      (map #(println (str "Evento ID: " (:event_id %)

@@ -5,7 +5,7 @@
      [bet-project.service.NHL :refer [calcular-resultado-nhl
                                       prever-over-under-nhl]]
      [cheshire.core :as json]
-     [clojure.edn :as edn]
+   
      [clojure.java.jdbc :as jdbc]
      [clojure.string :as string]))
 
@@ -43,15 +43,22 @@
   (create-saldo-table)
   (create-apostas-table)
 
+  (defn obter-saldo []
+    (let [result (jdbc/query db-spec ["SELECT valor FROM saldo LIMIT 1"])]
+      (:valor (first result))))
+
+  (defn atualizar-saldo [quantidade]
+    (jdbc/execute! db-spec ["UPDATE saldo SET valor = valor + ?" quantidade]))
+
   (defn inserir-aposta [event-id quantidade esporte tipo palpite odd-home odd-away total-over]
     (let [query "INSERT INTO apostas (event_id, quantidade, esporte, tipo, palpite, odd_home, odd_away, total_over)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)"]
       (try
         (jdbc/execute! db-spec [query event-id quantidade esporte tipo
                                 (when (and palpite (not (string/blank? palpite))) palpite)
-                                (or odd-home 0.0)
-                                (or odd-away 0.0)
-                                (or total-over 0.0)])
+                                (if (= (odd-home) nil) 0 odd-home)
+                                (if (= (odd-away) nil) 0 odd-away)
+                                (if (= (total-over) nil) 0 total-over)])
         (catch Exception e
           (println "Erro ao inserir aposta:" (.getMessage e))))))
 
@@ -142,6 +149,4 @@
            :body (json/generate-string {:mensagem (str "Você ganhou um total de R$ " total-ganho)})}
           {:status 200
            :body (json/generate-string {:mensagem "Você não ganhou nenhuma aposta."})})))
-    (catch Exception edn/e
-      {:status 500
-       :body (json/generate-string {:erro (str "Erro ao processar as apostas: " (.getMessage edn/e))})}))
+    )
