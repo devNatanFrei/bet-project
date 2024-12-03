@@ -25,11 +25,19 @@
                      tipo VARCHAR(255) NOT NULL,
                      esporte VARCHAR(255) NOT NULL,
                      palpite VARCHAR(255) NULL,
-                     odd_home DECIMAL(15,2) NULL,
-                     odd_away DECIMAL(15,2) NULL,
-                     total_over DECIMAL(15,2) NULL,
+                     evento VARCHAR(255) NULL,
                      data_aposta TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                    )"]))
+
+    (defn create-apostasOdd-table []
+    (jdbc/execute! db-spec
+                   ["CREATE TABLE IF NOT EXISTS apostaodd (
+                       event_id VARCHAR(255) PRIMARY KEY NOT NULL,
+                        odd_home DECIMAL(15,2) NOT NULL DEFAULT 0.0,
+                        odd_away DECIMAL(15,2) NOT NULL DEFAULT 0.0,
+                        total_over DECIMAL(15,2) NOT NULL DEFAULT 0.0,
+                       data_aposta TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                     )"]))
 
   (defn create-saldo-table []
     (jdbc/execute! db-spec
@@ -42,6 +50,7 @@
 
   (create-saldo-table)
   (create-apostas-table)
+  (create-apostasOdd-table)
 
   (defn obter-saldo []
     (let [result (jdbc/query db-spec ["SELECT valor FROM saldo LIMIT 1"])]
@@ -50,17 +59,26 @@
   (defn atualizar-saldo [quantidade]
     (jdbc/execute! db-spec ["UPDATE saldo SET valor = valor + ?" quantidade]))
 
-  (defn inserir-aposta [event-id quantidade esporte tipo palpite odd-home odd-away total-over]
-    (let [query "INSERT INTO apostas (event_id, quantidade, esporte, tipo, palpite, odd_home, odd_away, total_over)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)"]
+  (defn inserir-aposta [event-id quantidade esporte tipo palpite evento]
+    (let [query "INSERT INTO apostas (event_id, quantidade, esporte, tipo, palpite, evento)
+                  VALUES (?, ?, ?, ?, ?, ?)"]
       (try
         (jdbc/execute! db-spec [query event-id quantidade esporte tipo
                                 (when (and palpite (not (string/blank? palpite))) palpite)
-                                (if (= (odd-home) nil) 0 odd-home)
-                                (if (= (odd-away) nil) 0 odd-away)
-                                (if (= (total-over) nil) 0 total-over)])
+                                evento])
+        (println "Aposta inserida com sucesso.")
         (catch Exception e
           (println "Erro ao inserir aposta:" (.getMessage e))))))
+  
+
+  (defn inserir-odds [event-id odd-home odd-away total-over]
+    (let [query "INSERT INTO apostaodd (event_id, odd_home, odd_away, total_over)
+                  VALUES (?, ?, ?, ?)"]
+      (try
+        (jdbc/execute! db-spec [query event-id (or odd-home 0.0) (or odd-away 0.0) (or total-over 0.0)])
+        (println "Odds inseridos com sucesso.")
+        (catch Exception e
+          (println "Erro ao inserir odds:" (.getMessage e))))))
 
   (defn obter-apostas []
     (let [results (jdbc/query db-spec ["SELECT * FROM apostas"])]
@@ -92,61 +110,70 @@
       (calcular-ganho quantidade (calcular-moneyline odd))
       0))
 
+(defn obter-odds [event-id]
+  (let [results (jdbc/query db-spec ["SELECT * FROM apostasOdd WHERE event_id = ?" event-id])]
+    (first results)))
+  
+
   (defn obter-aposta-cal [_]
-    (try
-      (let [apostas (jdbc/query db-spec ["SELECT * FROM apostas"])
-            resultados
-            (map (fn [aposta]
-                   (let [event-id      (:event_id aposta)
-                         tipo          (:tipo aposta)
-                         esporte       (:esporte aposta)
-                         palpite       (:palpite aposta)
-                         quantidade    (:quantidade aposta)
-                         odd-home      (:odd_home aposta)
-                         odd-away      (:odd_away aposta)
-                         odd-total     (:total_over aposta)
-                         ganho         (cond
-                                         (and (= tipo "resultado-correto") (= esporte "basquete"))
-                                         (let [{:keys [status body]} (resultado-correto-nba event-id palpite)]
-                                           (when (= status 200)
-                                             (cond
-                                               (and (= true (:acertou body)) (> (:score_home body) (:score_away body)))
-                                               (calcular-ganho quantidade (calcular-moneyline odd-home))
-                                               (and (= true (:acertou body)) (< (:score_home body) (:score_away body)))
-                                               (calcular-ganho quantidade (calcular-moneyline odd-away)))))
+     (try
+       (let [apostas (jdbc/query db-spec ["SELECT * FROM apostas"])
+             resultados
+             (map (fn [aposta]
+                    (let [event-id      (:event_id aposta)
+                          tipo          (:tipo aposta)
+                          esporte       (:esporte aposta)
+                          palpite       (:palpite aposta)
+                          quantidade    (:quantidade aposta)
+  
+               
+                          odds          (obter-odds event-id)
+                          odd-home      (:odd_home odds)
+                          odd-away      (:odd_away odds)
+                          total-over    (:total_over odds)
+  
+                          ganho         (cond
+                                          (and (= tipo "resultado-correto") (= esporte "basquete"))
+                                          (let [{:keys [status body]} (resultado-correto-nba event-id palpite)]
+                                            (when (= status 200)
+                                              (cond
+                                                (and (= true (:acertou body)) (> (:score_home body) (:score_away body)))
+                                                (calcular-ganho quantidade (calcular-moneyline odd-home))
+                                                (and (= true (:acertou body)) (< (:score_home body) (:score_away body)))
+                                                (calcular-ganho quantidade (calcular-moneyline odd-away)))))
+  
+                                          (and (= tipo "resultado-correto") (= esporte "nhl"))
+                                          (let [{:keys [status body]} (calcular-resultado-nhl event-id palpite)]
+                                            (when (= status 200)
+                                              (cond
+                                                (and (= true (:acertou body)) (> (:score_home body) (:score_away body)))
+                                                (calcular-ganho quantidade (calcular-moneyline odd-home))
+                                                (and (= true (:acertou body)) (< (:score_home body) (:score_away body)))
+                                                (calcular-ganho quantidade (calcular-moneyline odd-away)))))
+  
+                                          (and (= tipo "over-and-under") (= esporte "basquete"))
+                                          (let [{:keys [status body]} (prever-over-under-nba event-id palpite)]
+                                            (when (= status 200)
+                                              (calcular-over-under-ganho quantidade total-over (:resultado body) palpite)))
+  
+                                          (and (= tipo "over-and-under") (= esporte "nhl"))
+                                          (let [{:keys [status body]} (prever-over-under-nhl event-id palpite)]
+                                            (when (= status 200)
+                                              (calcular-over-under-ganho quantidade total-over (:resultado body) palpite)))
+  
+                                          :else 0)]
+                      {:ganho    ganho
+                       :event_id event-id
+                       :tipo     tipo
+                       :esporte  esporte
+                       :palpite  palpite}))
+                  apostas)
+             resultados-validos (remove nil? resultados)
+             total-ganho (reduce + (map :ganho resultados-validos))]
+         (if (> total-ganho 0)
+           {:status 200
+            :body (json/generate-string {:mensagem (str "Você ganhou um total de R$ " total-ganho)})}
+           {:status 200
+            :body (json/generate-string {:mensagem "Você não ganhou nenhuma aposta."})})))
+     )
 
-                                         (and (= tipo "resultado-correto") (= esporte "nhl"))
-                                         (let [{:keys [status body]} (calcular-resultado-nhl event-id palpite)]
-                                           (when (= status 200)
-                                             (cond
-                                               (and (= true (:acertou body)) (> (:score_home body) (:score_away body)))
-                                               (calcular-ganho quantidade (calcular-moneyline odd-home))
-                                               (and (= true (:acertou body)) (< (:score_home body) (:score_away body)))
-                                               (calcular-ganho quantidade (calcular-moneyline odd-away)))))
-
-                                         (and (= tipo "over-and-under") (= esporte "basquete"))
-                                         (let [{:keys [status body]} (prever-over-under-nba event-id palpite)]
-                                           (when (= status 200)
-                                             (calcular-over-under-ganho quantidade odd-total (:resultado body) palpite)))
-
-                                         (and (= tipo "over-and-under") (= esporte "nhl"))
-                                         (let [{:keys [status body]} (prever-over-under-nhl event-id palpite)]
-                                           (when (= status 200)
-                                             (calcular-over-under-ganho quantidade odd-total (:resultado body) palpite)))
-
-                                         :else 0)]
-                     {:ganho    ganho
-                      :event_id event-id
-                      :tipo     tipo
-                      :esporte  esporte
-                      :palpite  palpite}))
-                 apostas)
-            resultados-validos (remove nil? resultados)
-            total-ganho (reduce + (map :ganho resultados-validos))]
-
-        (if (> total-ganho 0)
-          {:status 200
-           :body (json/generate-string {:mensagem (str "Você ganhou um total de R$ " total-ganho)})}
-          {:status 200
-           :body (json/generate-string {:mensagem "Você não ganhou nenhuma aposta."})})))
-    )

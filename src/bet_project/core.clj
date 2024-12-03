@@ -2,7 +2,8 @@
   (:require
    [bet-project.db.Database :refer [obter-aposta-cal]]
    [bet-project.service.Aposta :refer [obter-aposta-handler
-                                       registrar-aposta-handler]]
+                                       registrar-aposta-handler
+                                       registrar-aposta-odd-handler]]
    [bet-project.service.Financeiro :refer [depositar-handler
                                            obter-saldo-handler]]
    [bet-project.service.Nba :refer [get-schedules-nba obter-eventos-nba
@@ -93,9 +94,7 @@
 (def rotas
   (route/expand-routes
    #{["/depositar" :post depositar-handler :route-name :depositar]
-     ["/saldo" :get obter-saldo-handler :route-name :saldo]
-     
-     
+     ["/saldo" :get obter-saldo-handler :route-name :saldo] 
      ["/apostar" :post registrar-aposta-handler :route-name :registrar-aposta]
      ["/liquidaposta" :get obter-aposta-cal :route-name :obter-apostas-cal]
      ["/aposta" :get obter-aposta-handler :route-name :obter-apostas]
@@ -103,13 +102,13 @@
      ["/mercados-nba" :get obter-mercados-nba :route-name :mercados-nba]
      ["/mercados-nhl" :get obter-mercados-nhl :route-name :mercados-nhl]
      ["/schedules-nba" :get get-schedules-nba :route-name :get-nba-schedules]
-     
+     ["/register-odd" :post registrar-aposta-odd-handler :route-name :registrar-aposta-odd] 
      ["/events-nhl" :get obter-eventos-nhl :route-name :events-fut]
      }))
 
 (def mapa-servico
   {::http/routes rotas
-   ::http/port   8080
+   ::http/port   9999
    ::http/type   :jetty
    ::http/join?  false})
 
@@ -163,30 +162,23 @@
           palpite (if (= tipo "resultado-correto")
                     (do (print "Digite o palpite (Casa/Visitante/Empate): ") (read-line))
                     nil)
+          evento (do (print "Digite o evento: ") (read-line))
          
-          odd-home (if (= tipo "over-and-under")
-                     (do (print "Digite a odd home: ") (Double/parseDouble (read-line)))
-                     nil)
-          odd-away (if (= tipo "over-and-under")
-                     (do (print "Digite a odd away: ") (Double/parseDouble (read-line)))
-                     nil)
-          response (client/post "http://localhost:8080/apostar"
+          response (client/post "http://localhost:9999/apostar"
                                 {:body (json/generate-string
                                         {:event-id event-id
                                          :quantidade quantidade
                                          :esporte esporte
                                          :tipo tipo
                                          :palpite palpite
-                              
-                                         :odd_home odd-home      
-                                         :odd_away odd-away})   
+                                         :evento evento})
                                  :headers {"Content-Type" "application/json"}})]
       (println "Resultado:" (:mensagem (json/parse-string (:body response) true)))))
   (menu-principal))
 
 (defn consultar-resultados []
   (println "\n====== Consultar Resultados ======")
-  (let [response (client/get "http://localhost:8080/aposta")
+  (let [response (client/get "http://localhost:9999/aposta")
         apostas (json/parse-string (:body response) true)]
     (dorun
      (map #(println (str "Evento ID: " (:event_id %)

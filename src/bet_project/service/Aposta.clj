@@ -1,14 +1,11 @@
-(ns bet-project.service.Aposta 
+(ns bet-project.service.Aposta
   (:require
+   [bet-project.db.Database :refer [inserir-aposta inserir-odds obter-apostas]]
    [bet-project.service.Financeiro :refer [saldo-conta]]
-   [bet-project.db.Database :refer [inserir-aposta obter-apostas]]
    [cheshire.core :as json]))
 
+(def apostas-odd (atom []))
 (def apostas (atom []))
-
-;; (defn today-date []
-;;   (let [formatter (DateTimeFormatter/ofPattern "yyyy-MM-dd")]
-;;     (.format (LocalDate/now) formatter)))
 
 (defn salvar-apostas-no-banco []
   (dorun
@@ -17,38 +14,57 @@
                          (:esporte %)
                          (:tipo %)
                          (:palpite %)
-                         (:odd_home %)
-                         (:odd_away %)
-                         (:total_over %))
+                         (:evento %))
         @apostas))
   (reset! apostas []))
 
 (defn registrar-aposta-handler [request]
-  (let [aposta (json/parse-string (slurp (:body request)) true)
-        event-id (:event-id aposta)
-        valor-aposta (:quantidade aposta)
-        esporte (:esporte aposta)
-        tipo-aposta (:tipo aposta)
-        palpite (get aposta :palpite nil)
-        odd-home (get aposta :odd_home nil)
-        odd-away (get aposta :odd_away nil)]
+  (let [aposta        (json/parse-string (slurp (:body request)) true)
+        event-id      (:event-id aposta)
+        valor-aposta  (:quantidade aposta)
+        esporte       (:esporte aposta)
+        tipo-aposta   (:tipo aposta)
+        palpite       (get aposta :palpite nil)
+        evento        (get aposta :evento nil)]
     (if (and (number? valor-aposta) (<= valor-aposta @saldo-conta))
       (do
         (swap! saldo-conta - valor-aposta)
-        (swap! apostas conj {:event-id event-id
-                             :quantidade valor-aposta
-                             :esporte esporte
-                             :tipo tipo-aposta
-                             :palpite palpite
-                             :odd_home odd-home
-                             :odd_away odd-away})
+        (swap! apostas conj {:event-id    event-id
+                             :quantidade  valor-aposta
+                             :esporte     esporte
+                             :tipo        tipo-aposta
+                             :palpite     palpite
+                             :evento      evento})
         (salvar-apostas-no-banco)
         {:status 200
          :body (json/generate-string {:mensagem "Aposta registrada com sucesso."
-                                      :saldo @saldo-conta})})
-      {:status 400 :body "Saldo insuficiente ou valor da aposta inválido."})))
+                                      :saldo    @saldo-conta})})
+      {:status 400
+       :body    "Saldo insuficiente ou valor da aposta inválido."})))
+
+
+(defn salvar-apostas-odd-no-banco []
+  (dorun
+   (map #(inserir-odds (:event-id %) (:odd-home %) (:odd-away %) (:total-over %))
+        @apostas-odd))
+  (reset! apostas-odd []))
+
+
+(defn registrar-aposta-odd-handler [request]
+  (let [aposta (json/parse-string (slurp (:body request)) true)
+        event-id (:event-id aposta)
+        odd-home (:odd-home aposta)
+        odd-away (:odd-away aposta)
+        total-over (:total-over aposta)]
+    (swap! apostas-odd conj {:event-id event-id
+                             :odd-home odd-home
+                             :odd-away odd-away
+                             :total-over total-over})
+    (salvar-apostas-odd-no-banco)
+    {:status 200
+     :body (json/generate-string {:mensagem "Aposta de odds registrada com sucesso."})}))
 
 (defn obter-aposta-handler [request]
   (let [apostas (obter-apostas)]
     {:status 200
-     :body (json/generate-string apostas)}))
+     :body   (json/generate-string apostas)}))
