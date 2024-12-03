@@ -10,13 +10,13 @@
   (let [formatter (DateTimeFormatter/ofPattern "yyyy-MM-dd")]
     (.format (LocalDate/now) formatter)))
 
-(defn calculate-moneyline [moneyline-value]
-  (if (= moneyline-value 0.0001)
-    0
-    (let [value (int moneyline-value)]
-      (cond
-        (< value 0) (inc (double (abs (/ 100 value))))
-        (> value 0) (double (/ value 100))))))
+;; (defn calculate-moneyline [moneyline-value]
+;;   (if (= moneyline-value 0.0001)
+;;     0
+;;     (let [value (int moneyline-value)]
+;;       (cond
+;;         (< value 0) (inc (double (abs (/ 100 value))))
+;;         (> value 0) (double (/ value 100))))))
 
 (defn get-schedules-nhl [request]
   (let [response (client/get "https://therundown-therundown-v1.p.rapidapi.com/sports/17/schedule"

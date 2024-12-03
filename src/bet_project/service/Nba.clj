@@ -10,13 +10,13 @@
   (let [formatter (DateTimeFormatter/ofPattern "yyyy-MM-dd")]
     (.format (LocalDate/now) formatter)))
 
-(defn calculate-moneyline [moneyline-value]
-  (if (= moneyline-value 0.0001)
-    0
-    (let [value (int moneyline-value)]
-      (cond
-        (< value 0) (inc (double (abs (/ 100 value))))
-        (> value 0) (double (/ value 100))))))
+;; (defn calculate-moneyline [moneyline-value]
+;;   (if (= moneyline-value 0.0001)
+;;     0
+;;     (let [value (int moneyline-value)]
+;;       (cond
+;;         (< value 0) (inc (double (abs (/ 100 value))))
+;;         (> value 0) (double (/ value 100))))))
 
 (defn get-schedules-nba [request]
   (let [response (client/get "https://therundown-therundown-v1.p.rapidapi.com/sports/4/schedule"
@@ -40,7 +40,7 @@
 (defn resultado-correto-nba [event-id palpite]
   (try
     (let [date (today-date)
-          response (client/get (str "https://therundown-therundown-v1.p.rapidapi.com/sports/4/events/2024-12-03")
+          response (client/get (str "https://therundown-therundown-v1.p.rapidapi.com/sports/4/events/2024-12-04")
                                {:headers {:x-rapidapi-key "8b7aaa01f5msh14e11a5a9881536p14b4b3jsn74e4cd56608c"
                                           :x-rapidapi-host "therundown-therundown-v1.p.rapidapi.com"}
                                 :query-params {:include "scores,lines"
@@ -98,7 +98,7 @@
 
 (defn prever-over-under-nba [event-id]
   (let [date (today-date)
-        response (client/get (str "https://therundown-therundown-v1.p.rapidapi.com/sports/4/events/" date)
+        response (client/get (str "https://therundown-therundown-v1.p.rapidapi.com/sports/4/events/2024-12-04")
                              {:headers {:x-rapidapi-key "8b7aaa01f5msh14e11a5a9881536p14b4b3jsn74e4cd56608c"
                                         :x-rapidapi-host "therundown-therundown-v1.p.rapidapi.com"}
                               :query-params {:include "scores,lines"

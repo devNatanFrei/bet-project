@@ -17,7 +17,6 @@
                          (:esporte %)
                          (:tipo %)
                          (:palpite %)
-                         (:data_aposta %)
                          (:odd_home %)
                          (:odd_away %))
         @apostas))
@@ -30,7 +29,6 @@
         esporte (:esporte aposta)
         tipo-aposta (:tipo aposta)
         palpite (get aposta :palpite nil)
-
         odd-home (get aposta :odd_home nil)
         odd-away (get aposta :odd_away nil)]
     (if (and (number? valor-aposta) (<= valor-aposta @saldo-conta))
