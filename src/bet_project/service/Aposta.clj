@@ -1,6 +1,6 @@
 (ns bet-project.service.Aposta 
   (:require
-   [bet-project.core :refer [saldo-conta]]
+   [bet-project.service.Financeiro :refer [saldo-conta]]
    [bet-project.db.Database :refer [inserir-aposta obter-apostas]]
    [cheshire.core :as json]))
 

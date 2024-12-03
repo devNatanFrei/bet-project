@@ -22,7 +22,7 @@
 ;;     {:status 200
 ;;      :body data}))
 
-(def saldo-conta (atom (bet-project.db.Database/obter-saldo)))
+
 ;; (def apostas (atom []))
 
 ;; ;; (defn today-date []
@@ -163,9 +163,7 @@
           palpite (if (= tipo "resultado-correto")
                     (do (print "Digite o palpite (Casa/Visitante/Empate): ") (read-line))
                     nil)
-          linha (if (= tipo "over-and-under")
-                  (do (print "Digite a linha do over/under: ") (Double/parseDouble (read-line)))
-                  nil)
+         
           odd-home (if (= tipo "over-and-under")
                      (do (print "Digite a odd home: ") (Double/parseDouble (read-line)))
                      nil)

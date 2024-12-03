@@ -69,7 +69,6 @@
   (* quantidade moneyline))
 
 
-
 (defn obter-aposta-cal [_]
   (try
     (let [apostas (jdbc/query db-spec ["SELECT * FROM apostas"])]
@@ -77,16 +76,15 @@
             (map (fn [aposta]
                    (let [event-id (:event_id aposta)
                          tipo (:tipo aposta)
-                         esporte (:esporte aposta) 
+                         esporte (:esporte aposta)
                          palpite (:palpite aposta)
                          odd-home (:odd_home aposta)
                          odd-away (:odd_away aposta)
                          moneyline-home (calcular-moneyline odd-home)
                          moneyline-away (calcular-moneyline odd-away)
                          ganho (cond
-                                 ;; Resultado Correto NBA
-                                 (and (= tipo "resultado-correto")
-                                      (= esporte "basquete"))
+                                 ;; Resultado Correto - Basquete
+                                 (and (= tipo "resultado-correto") (= esporte "basquete"))
                                  (let [{:keys [status body]} (resultado-correto-nba event-id palpite)]
                                    (when (= status 200)
                                      (cond
@@ -95,9 +93,8 @@
                                        (and (= true (:acertou body)) (< (:score_home body) (:score_away body)))
                                        (calcular-ganho (:quantidade aposta) moneyline-away))))
 
-                                
-                                 (and (= tipo "resultado-correto")
-                                      (= esporte "nhl"))
+                                 ;; Resultado Correto - NHL
+                                 (and (= tipo "resultado-correto") (= esporte "nhl"))
                                  (let [{:keys [status body]} (calcular-resultado-nhl event-id palpite)]
                                    (when (= status 200)
                                      (cond
@@ -106,20 +103,27 @@
                                        (and (= true (:acertou body)) (< (:score_home body) (:score_away body)))
                                        (calcular-ganho (:quantidade aposta) moneyline-away))))
 
-                                 
-                                 (and (= tipo "over-and-under")
-                                      (= esporte "basquete"))
-                                 (let [{:keys [status body]} (prever-over-under-nba event-id )]
+                                 ;; Over/Under - Basquete
+                                 (and (= tipo "over-and-under") (= esporte "basquete"))
+                                 (let [{:keys [status body]} (prever-over-under-nba event-id)]
                                    (when (= status 200)
-                                     ))
+                                     (cond
+                                       (and (= (:resultado body) "Over"))
+                                       (calcular-ganho (:quantidade aposta) moneyline-home)
+                                       (and (= (:resultado body) "Under"))
+                                       (calcular-ganho (:quantidade aposta) moneyline-away))))
 
-                                 
-                                 (and (= tipo "over-and-under")
-                                      (= esporte "nhl"))
-                                 (let [{:keys [status body]} (prever-over-under-nhl event-id )]
+                                 ;; Over/Under - NHL
+                                 (and (= tipo "over-and-under") (= esporte "nhl"))
+                                 (let [{:keys [status body]} (prever-over-under-nhl event-id)]
                                    (when (= status 200)
-                                     ))
+                                     (cond
+                                       (and (= (:resultado body) "Over"))
+                                       (calcular-ganho (:quantidade aposta) moneyline-home)
+                                       (and (= (:resultado body) "Under"))
+                                       (calcular-ganho (:quantidade aposta) moneyline-away))))
 
+                                 ;; Caso não seja nenhum mercado conhecido
                                  :else 0)]
                      {:event_id event-id
                       :tipo tipo
@@ -139,6 +143,7 @@
 
 
 
+
 (defn obter-saldo []
   (let [result (jdbc/query db-spec ["SELECT valor FROM saldo LIMIT 1"])]
     (:valor (first result))))
@@ -153,7 +158,7 @@
     (try
       (jdbc/execute! db-spec [query event-id quantidade esporte tipo
                               (if (empty? palpite) nil palpite)
-                              (if (nil? linha) nil linha)
+                      
                               odd_home odd_away])
       (println "Aposta inserida com sucesso.")
       (catch Exception e

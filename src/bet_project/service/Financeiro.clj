@@ -3,6 +3,8 @@
             [cheshire.core :as json])
   )
 
+(def saldo-conta (atom (bet-project.db.Database/obter-saldo)))
+
 (defn depositar-handler [request]
   (let [params (json/parse-string (slurp (:body request)) true)
         quantidade (:quantidade params)]
